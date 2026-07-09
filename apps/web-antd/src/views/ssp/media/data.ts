@@ -1,0 +1,334 @@
+import type { VbenFormSchema } from '#/adapter/form';
+import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { SspMediaApi } from '#/api/ssp/media';
+
+import { DICT_TYPE } from '@vben/constants';
+import { getDictOptions } from '@vben/hooks';
+
+import { getRangePickerDefaultProps } from '#/utils';
+
+/** 新增/修改的表单 */
+export function useFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'id',
+      component: 'Input',
+      dependencies: {
+        triggerFields: [''],
+        show: () => false,
+      },
+    },
+    {
+      fieldName: 'account',
+      label: '账号名',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入账号名',
+      },
+    },
+    {
+      fieldName: 'password',
+      label: '密码',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入密码',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyShort',
+      label: '公司简称',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入公司简称',
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '媒体名称',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入媒体名称',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyName',
+      label: '公司名称',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入公司名称',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyCode',
+      label: '信用代码',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入统一社会信用代码',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyLicense',
+      label: '营业执照',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入营业执照照片',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyAddress',
+      label: '公司地址',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入公司地址',
+      },
+    },
+    {
+      fieldName: 'mediaOwnerName',
+      label: '法人姓名',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入法人姓名',
+      },
+    },
+    {
+      fieldName: 'contactName',
+      label: '联系人',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入联系人',
+      },
+    },
+    {
+      fieldName: 'contactPhone',
+      label: '联系电话',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入联系电话',
+      },
+    },
+    {
+      fieldName: 'contactEmail',
+      label: '联系邮箱',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入联系邮箱',
+      },
+    },
+    {
+      fieldName: 'accessType',
+      label: '接入方式',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.SSP_ACCESS_TYPE, 'number'),
+        placeholder: '请选择接入方式',
+      },
+    },
+    {
+      fieldName: 'trafficType',
+      label: '流量类型',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.SSP_TRAFFIC_TYPE, 'number'),
+        placeholder: '请选择流量类型',
+      },
+    },
+    {
+      fieldName: 'enable',
+      label: '媒体状态',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+         options: getDictOptions(DICT_TYPE.SSP_ENABLE, 'number'),
+        placeholder: '请输入媒体状态',
+      },
+    },
+  ];
+}
+
+/** 列表的搜索表单 */
+export function useGridFormSchema(): VbenFormSchema[] {
+  return [
+    {
+      fieldName: 'account',
+      label: '账号名',
+      component: 'Input',
+      componentProps: {
+        allowClear: true,
+        placeholder: '请输入账号名',
+      },
+    },
+    {
+      fieldName: 'mediaCompanyShort',
+      label: '公司简称',
+      component: 'Input',
+      componentProps: {
+        allowClear: true,
+        placeholder: '请输入公司简称',
+      },
+    },
+    {
+      fieldName: 'accessType',
+      label: '接入方式',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_ACCESS_TYPE, 'number'),
+        placeholder: '请选择接入方式',
+      },
+    },
+    {
+      fieldName: 'trafficType',
+      label: '流量类型',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_TRAFFIC_TYPE, 'number'),
+        placeholder: '请选择流量类型',
+      },
+    },
+    {
+      fieldName: 'enable',
+      label: '媒体状态',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_ENABLE, 'number'),
+        placeholder: '请选择媒体状态',
+      },
+    },
+    {
+      fieldName: 'createTime',
+      label: '创建时间',
+      component: 'RangePicker',
+      componentProps: {
+        ...getRangePickerDefaultProps(),
+        allowClear: true,
+      },
+    },
+    {
+      fieldName: 'updateTime',
+      label: '更新时间',
+      component: 'RangePicker',
+      componentProps: {
+        ...getRangePickerDefaultProps(),
+        allowClear: true,
+      },
+    },
+  ];
+}
+
+/** 列表的字段 */
+export function useGridColumns(): VxeTableGridOptions<SspMediaApi.Media>['columns'] {
+  return [
+  { type: 'checkbox', width: 40 },
+    {
+      field: 'id',
+      title: 'ID',
+      minWidth: 120,
+    },
+    {
+      field: 'account',
+      title: '账号名',
+      minWidth: 120,
+    },
+    {
+      field: 'mediaCompanyShort',
+      title: '公司简称',
+      minWidth: 120,
+    },
+    {
+      field: 'name',
+      title: '媒体名称',
+      minWidth: 120,
+    },
+    {
+      field: 'mediaCompanyName',
+      title: '公司名称',
+      minWidth: 120,
+    },
+    {
+      field: 'mediaCompanyAddress',
+      title: '公司地址',
+      minWidth: 120,
+    },
+    {
+      field: 'mediaOwnerName',
+      title: '法人姓名',
+      minWidth: 120,
+    },
+    {
+      field: 'contactName',
+      title: '联系人',
+      minWidth: 120,
+    },
+    {
+      field: 'contactPhone',
+      title: '联系电话',
+      minWidth: 120,
+    },
+    {
+      field: 'contactEmail',
+      title: '联系邮箱',
+      minWidth: 120,
+    },
+    {
+      field: 'accessType',
+      title: '接入方式',
+      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.SSP_ACCESS_TYPE },
+      },
+    },
+    {
+      field: 'trafficType',
+      title: '流量类型',
+      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.SSP_TRAFFIC_TYPE },
+      },
+    },
+    {
+      field: 'enable',
+      title: '媒体状态',
+      minWidth: 120,
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.SSP_ENABLE },
+      },
+    },
+    {
+      field: 'creator',
+      title: '创建者',
+      minWidth: 120,
+    },
+    {
+      field: 'createTime',
+      title: '创建时间',
+      minWidth: 120,
+      formatter: 'formatDateTime',
+    },
+    {
+      field: 'updater',
+      title: '更新者',
+      minWidth: 120,
+    },
+    {
+      field: 'updateTime',
+      title: '更新时间',
+      minWidth: 120,
+      formatter: 'formatDateTime',
+    },
+    {
+      title: '操作',
+      width: 200,
+      fixed: 'right',
+      slots: { default: 'actions' },
+    },
+  ];
+}
+
