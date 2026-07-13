@@ -3,7 +3,6 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { SspSlotInfoApi } from '#/api/ssp/sspSlotInfo';
 
 import { ref } from 'vue';
-
 import { useRouter } from 'vue-router';
 
 import { confirm, Page, useVbenModal } from '@vben/common-ui';
@@ -17,6 +16,7 @@ import {
   deleteSlotInfoList,
   exportSlotInfo,
   getSlotInfoPage,
+  updateSlotInfo,
 } from '#/api/ssp/sspSlotInfo';
 import { $t } from '#/locales';
 
@@ -46,7 +46,15 @@ function handleEdit(row: SspSlotInfoApi.SlotInfo) {
 }
 
 /** 配置媒体广告位 */
-function handleConfig(row: SspSlotInfoApi.SlotInfo) {
+async function handleConfig(row: SspSlotInfoApi.SlotInfo) {
+  if (row.enable === 2) {
+    await updateSlotInfo({
+      ...row,
+      enable: 1,
+    });
+    message.success('审核通过');
+    handleRefresh();
+  }
   router.push({
     name: 'SspSlotInfoConfig',
     params: { id: row.id },
@@ -180,7 +188,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               onClick: handleEdit.bind(null, row),
             },
             {
-              label: '配置',
+              label: row.enable === 2 ? '配置并通过' : '配置',
               type: 'link',
               icon: ACTION_ICON.SETTINGS,
               auth: ['ssp:slot-info:update'],

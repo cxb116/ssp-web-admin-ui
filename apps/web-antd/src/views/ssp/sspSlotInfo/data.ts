@@ -1,17 +1,16 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { SspSlotInfoApi } from '#/api/ssp/sspSlotInfo';
-import type { MediaApi } from '#/api/ssp/media';
 import type { SspAppApi } from '#/api/ssp/app';
+import type { MediaApi } from '#/api/ssp/media';
+import type { SspSlotInfoApi } from '#/api/ssp/sspSlotInfo';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
-import { getMediaSimpleList } from '#/api/ssp/media';
 import { getAppPage } from '#/api/ssp/app';
+import { getMediaSimpleList } from '#/api/ssp/media';
 import { getSlotInfoPage } from '#/api/ssp/sspSlotInfo';
+import { getRangePickerDefaultProps } from '#/utils';
 
 async function getMediaOptions() {
   const list = await getMediaSimpleList();
@@ -29,12 +28,24 @@ async function getAppOptions(params: { mediaId?: number }) {
   }));
 }
 
-async function getSlotInfoOptions() {
+async function getSlotNameOptions() {
   const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
-  return (res.list || []).map((slot: SspSlotInfoApi.SlotInfo) => ({
-    label: `${slot.name || ''}(${slot.id})`,
-    value: slot.id,
-  }));
+  return (res.list || [])
+    .filter((slot: SspSlotInfoApi.SlotInfo) => !!slot.name)
+    .map((slot: SspSlotInfoApi.SlotInfo) => ({
+      label: `${slot.name || ''}(${slot.id})`,
+      value: slot.name,
+    }));
+}
+
+async function getSlotAliasOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  return (res.list || [])
+    .filter((slot: SspSlotInfoApi.SlotInfo) => !!slot.nameAlise)
+    .map((slot: SspSlotInfoApi.SlotInfo) => ({
+      label: `${slot.nameAlise || ''}(${slot.id})`,
+      value: slot.nameAlise,
+    }));
 }
 
 /** 新增/修改的表单 */
@@ -197,19 +208,25 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'name',
       label: '广告位名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
+        api: getSlotNameOptions,
+        filterOption: false,
         placeholder: '请输入广告位名称',
+        showSearch: true,
       },
     },
     {
       fieldName: 'nameAlise',
       label: '内部广告位名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
+        api: getSlotAliasOptions,
+        filterOption: false,
         placeholder: '请输入内部广告位名称',
+        showSearch: true,
       },
     },
     {
@@ -375,4 +392,3 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
     },
   ];
 }
-

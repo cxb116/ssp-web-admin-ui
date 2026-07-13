@@ -1,16 +1,16 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { DspCompanyApi } from '#/api/dsp/company';
 import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
 import type { DspProductApi } from '#/api/dsp/product';
-import type { DspCompanyApi } from '#/api/dsp/company';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
-import { getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
+import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
+import { getProductPage } from '#/api/dsp/product';
+import { getRangePickerDefaultProps } from '#/utils';
 
 async function getProductOptions() {
   const res = await getProductPage({ pageNo: 1, pageSize: 1000 });
@@ -26,6 +26,16 @@ async function getCompanyOptions() {
     label: `${company.name || ''}(${company.id})`,
     value: company.id,
   }));
+}
+
+async function getDspSlotCodeOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  return (res.list || [])
+    .filter((slot: DspSlotInfoApi.SlotInfo) => !!slot.dspSlotCode)
+    .map((slot: DspSlotInfoApi.SlotInfo) => ({
+      label: `${slot.dspSlotCode || ''}(${slot.id})`,
+      value: slot.dspSlotCode,
+    }));
 }
 
 /** 新增/修改的表单 */
@@ -184,10 +194,13 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'dspSlotCode',
       label: '预算方广告位',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
+        api: getDspSlotCodeOptions,
+        filterOption: false,
         placeholder: '请输入预算方广告位',
+        showSearch: true,
       },
     },
     {
@@ -400,4 +413,3 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
     },
   ];
 }
-
