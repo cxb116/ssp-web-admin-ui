@@ -67,7 +67,7 @@ export function useFormSchema(): VbenFormSchema[] {
         api: getProductOptions,
         placeholder: '请选择产品名称',
         showSearch: true,
-        filterOption: false,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -79,7 +79,7 @@ export function useFormSchema(): VbenFormSchema[] {
         api: getCompanyOptions,
         placeholder: '请选择公司名称',
         showSearch: true,
-        filterOption: false,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -198,9 +198,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         allowClear: true,
         api: getDspSlotCodeOptions,
-        filterOption: false,
         placeholder: '请输入预算方广告位',
         showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -212,7 +212,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
         api: getProductOptions,
         placeholder: '请选择产品名称',
         showSearch: true,
-        filterOption: false,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -224,7 +224,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
         api: getCompanyOptions,
         placeholder: '请选择公司名称',
         showSearch: true,
-        filterOption: false,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -290,7 +290,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: 'ID',

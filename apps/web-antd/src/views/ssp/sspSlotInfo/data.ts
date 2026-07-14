@@ -21,7 +21,11 @@ async function getMediaOptions() {
 }
 
 async function getAppOptions(params: { mediaId?: number }) {
-  const res = await getAppPage({ pageNo: 1, pageSize: 1000, mediaId: params.mediaId });
+  const res = await getAppPage({
+    pageNo: 1,
+    pageSize: 1000,
+    mediaId: params.mediaId,
+  });
   return (res.list || []).map((app: SspAppApi.App) => ({
     label: `${app.name || ''}(${app.id})`,
     value: app.id,
@@ -67,6 +71,8 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: {
         api: getMediaOptions,
         placeholder: '请选择媒体名称',
+        showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -78,6 +84,8 @@ export function useFormSchema(): VbenFormSchema[] {
         api: getAppOptions,
         dependencies: ['mediaId'],
         placeholder: '请选择应用名称',
+        showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -192,6 +200,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
         allowClear: true,
         api: getMediaOptions,
         placeholder: '请选择媒体名称',
+        showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -203,6 +213,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
         api: getAppOptions,
         dependencies: ['mediaId'],
         placeholder: '请选择应用名称',
+        showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -212,9 +224,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         allowClear: true,
         api: getSlotNameOptions,
-        filterOption: false,
         placeholder: '请输入广告位名称',
         showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -224,9 +236,9 @@ export function useGridFormSchema(): VbenFormSchema[] {
       componentProps: {
         allowClear: true,
         api: getSlotAliasOptions,
-        filterOption: false,
         placeholder: '请输入内部广告位名称',
         showSearch: true,
+        optionFilterProp: 'label',
       },
     },
     {
@@ -283,7 +295,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+    { type: 'checkbox', width: 40 },
     {
       field: 'id',
       title: '广告位ID',
