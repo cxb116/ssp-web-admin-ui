@@ -5,8 +5,6 @@ import type { DspCompanyApi } from '#/api/dsp/company';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -20,20 +18,24 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'name',
-      label: '公司名称',
+      label: '预算公司名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入公司名称',
+        placeholder: '请输入预算公司名称',
       },
     },
     {
       fieldName: 'dspCode',
-      label: '预算映射值',
-      rules: 'required',
+      label: '匹配值',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算映射值',
+        placeholder: '系统自动生成',
+      },
+      dependencies: {
+        triggerFields: ['id'],
+        show: (values) => !!values.id,
+        disabled: () => true,
       },
     },
     {
@@ -70,11 +72,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'name',
-      label: '公司名称',
+      label: '预算公司名称',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入公司名称',
+        placeholder: '请输入预算公司名称',
       },
     },
     {
@@ -87,55 +89,41 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择请求方法',
       },
     },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
-    {
-      fieldName: 'updateTime',
-      label: '更新时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
   ];
 }
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspCompanyApi.Company>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
     {
       field: 'id',
-      title: 'ID',
+      title: '预算公司ID',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'name',
-      title: '公司名称',
+      title: '预算公司名称',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspCode',
-      title: '预算映射值',
+      title: '匹配值',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'url',
       title: '请求地址',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'method',
       title: '请求方法',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_REQUEST_TYPE },
@@ -145,33 +133,39 @@ export function useGridColumns(): VxeTableGridOptions<DspCompanyApi.Company>['co
       field: 'timeout',
       title: '超时时间',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'creator',
       title: '创建者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'createTime',
       title: '创建时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       field: 'updater',
       title: '更新者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'updateTime',
       title: '更新时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
       width: 200,
       fixed: 'right',
+      align: 'center',
       slots: { default: 'actions' },
     },
   ];

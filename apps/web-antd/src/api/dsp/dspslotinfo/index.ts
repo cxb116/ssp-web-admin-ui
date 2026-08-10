@@ -17,7 +17,7 @@ export namespace DspSlotInfoApi {
     dspAppKey: string; // 预算方APPKEY
     dspAppSecret: string; // 预算方APPSECRET
     dspAppId: string; // 预算方APPID
-    dspAppPkg: string; // 预算方应用包名
+    dspAppPkg: string; // 应用包名
     dspAppVer: string; // 应用版本号
     dspAppStoreVer: string; // 应用商店版本号
     priceEncryptKey: string; // 价格加密KEY
@@ -32,6 +32,15 @@ export function getSlotInfoPage(params: PageParam) {
     { params },
   );
 }
+
+/** 查询绑定预算条数 */
+export function getSlotInfoPageInfo(params: PageParam) {
+  return requestClient.get<PageResult<DspSlotInfoApi.SlotInfo>>(
+    '/dsp/slot-info/page-info',
+    { params },
+  );
+}
+
 
 /** 查询预算广告位详情 */
 export function getSlotInfo(id: number) {
@@ -65,4 +74,17 @@ export function deleteSlotInfoList(ids: number[]) {
 /** 导出预算广告位 */
 export function exportSlotInfo(params: any) {
   return requestClient.download('/dsp/slot-info/export-excel', { params });
+}
+
+/** 下载预算广告位导入模板 */
+export function importSlotInfoTemplate() {
+  return requestClient.download('/dsp/slot-info/get-import-template');
+}
+
+/** 导入预算广告位 */
+export function importSlotInfo(file: File, updateSupport: boolean) {
+  return requestClient.upload('/dsp/slot-info/import', {
+    file,
+    updateSupport,
+  });
 }

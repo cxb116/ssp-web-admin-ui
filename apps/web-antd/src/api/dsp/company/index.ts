@@ -56,3 +56,16 @@ export function deleteCompanyList(ids: number[]) {
 export function exportCompany(params: any) {
   return requestClient.download('/dsp/company/export-excel', { params });
 }
+
+/** 下载预算广告导入模板 */
+export function importCompanyTemplate() {
+  return requestClient.download('/dsp/company/get-import-template');
+}
+
+/** 导入预算广告 */
+export function importCompany(file: File, updateSupport: boolean) {
+  return requestClient.upload('/dsp/company/import', {
+    file,
+    updateSupport,
+  });
+}

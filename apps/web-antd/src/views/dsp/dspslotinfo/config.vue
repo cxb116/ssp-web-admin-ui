@@ -11,7 +11,7 @@ import { getDictOptions } from '@vben/hooks';
 import { DICT_TYPE } from '@vben/constants';
 
 import { getSlotInfo, updateSlotInfo, createSlotInfo } from '#/api/dsp/dspslotinfo';
-import { getProductPage } from '#/api/dsp/product';
+import { getProduct, getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
 import { getLaunchDspSlotIdQuery, getLaunchSspSlotList, createLaunch, updateLaunch, deleteLaunch } from '#/api/dsp/launch';
 import { getSlotInfoPage as getSspSlotInfoPage } from '#/api/ssp/sspSlotInfo';
@@ -258,13 +258,13 @@ async function handleDeleteBinding(binding: SspSlotBinding) {
 
 const bindTableColumns = [
   {
-    title: 'ID',
+    title: '媒体广告位ID',
     dataIndex: 'id',
     key: 'id',
     width: 80,
   },
   {
-    title: '广告位名称',
+    title: '媒体广告位名称',
     dataIndex: 'name',
     key: 'name',
     width: 250,
@@ -333,11 +333,6 @@ function handleHourMouseUp() {
 onMounted(async () => {
   loading.value = true;
   try {
-    const productRes = await getProductPage({ pageNo: 1, pageSize: 1000 });
-    productOptions.value = (productRes.list || []).map((p: any) => ({
-      label: `${p.name || ''}(${p.id})`,
-      value: p.id,
-    }));
     const companyRes = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
     companyOptions.value = (companyRes.list || []).map((c: any) => ({
       label: `${c.name || ''}(${c.id})`,
@@ -346,6 +341,18 @@ onMounted(async () => {
     if (id.value) {
       const res = await getSlotInfo(id.value);
       slotInfo.value = res;
+      // 编辑场景：按已有 companyId 加载产品列表
+      if (res?.companyId) {
+        try {
+          const productRes = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: res.companyId });
+          productOptions.value = (productRes.list || []).map((p: any) => ({
+            label: `${p.name || ''}(${p.id})`,
+            value: p.id,
+          }));
+        } catch {
+          // ignore
+        }
+      }
       await loadSspSlotBindings();
     }
   } finally {
@@ -379,21 +386,53 @@ const [BaseForm, formApi] = useVbenForm({
     fieldName: 'companyId',
     label: '公司名称',
     component: 'ApiSelect',
-    componentProps: {
-      options: companyOptions,
+    componentProps: (_values: any, formApi: any) => ({
+      options: companyOptions.value,
       showSearch: true,
       filterOption: false,
-    },
+      // 切换公司时：清空产品，按公司重新加载产品列表
+      onChange: async (value: number | undefined) => {
+        formApi.setFieldValue('productId', undefined);
+        formApi.setFieldValue('osType', undefined);
+        if (!value) {
+          productOptions.value = [];
+          return;
+        }
+        try {
+          const res = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: value });
+          productOptions.value = (res.list || []).map((p: any) => ({
+            label: `${p.name || ''}(${p.id})`,
+            value: p.id,
+          }));
+        } catch {
+          productOptions.value = [];
+        }
+      },
+    }),
   },
       {
     fieldName: 'productId',
     label: '产品名称',
     component: 'ApiSelect',
-    componentProps: {
-      options: productOptions,
+    componentProps: (values: any, formApi: any) => ({
+      options: productOptions.value,
       showSearch: true,
       filterOption: false,
-    },
+      // 选公司前禁用
+      disabled: !values.companyId,
+      // 选择产品后自动赋值操作系统
+      onChange: async (value: number | undefined) => {
+        if (!value) return;
+        try {
+          const product = await getProduct(value);
+          if (product?.osType !== undefined) {
+            formApi.setFieldValue('osType', product.osType);
+          }
+        } catch {
+          // ignore
+        }
+      },
+    }),
   },
   
 {
@@ -430,7 +469,7 @@ const [BaseForm, formApi] = useVbenForm({
   },
   {
     fieldName: 'dspSlotCode',
-    label: '预算方广告位ID',
+    label: '预算广告位ID',
     component: 'Input',
   },
   
@@ -690,7 +729,7 @@ function handleBack() {
     </div>
 
     <div class="flex justify-center gap-4 mt-4">
-      <a-button @click="handleBack">返回</a-button>
+      <a-button @click="handleBack">取消</a-button>
       <a-button type="primary" @click="handleSave">保存</a-button>
     </div>
 

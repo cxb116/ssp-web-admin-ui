@@ -5,8 +5,6 @@ import type { SspMediaApi } from '#/api/ssp/media';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -20,69 +18,29 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'account',
-      label: '账号名',
+      label: '媒体账号',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入账号名',
+        placeholder: '请输入媒体账号',
       },
     },
     {
       fieldName: 'password',
-      label: '密码',
+      label: '媒体密码',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入密码',
+        placeholder: '请输入媒体密码',
       },
     },
     {
       fieldName: 'mediaCompanyShort',
-      label: '公司简称',
+      label: '媒体简称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入公司简称',
-      },
-    },
-    {
-      fieldName: 'name',
-      label: '媒体名称',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入媒体名称',
-      },
-    },
-    {
-      fieldName: 'mediaCompanyName',
-      label: '公司名称',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入公司名称',
-      },
-    },
-    {
-      fieldName: 'mediaCompanyCode',
-      label: '信用代码',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入统一社会信用代码',
-      },
-    },
-    {
-      fieldName: 'mediaCompanyLicense',
-      label: '营业执照',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入营业执照照片',
-      },
-    },
-    {
-      fieldName: 'mediaCompanyAddress',
-      label: '公司地址',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入公司地址',
+        placeholder: '请输入媒体简称',
       },
     },
     {
@@ -153,20 +111,20 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'account',
-      label: '账号名',
+      label: '媒体账号',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入账号名',
+        placeholder: '请输入媒体账号',
       },
     },
     {
       fieldName: 'mediaCompanyShort',
-      label: '公司简称',
+      label: '媒体简称',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入公司简称',
+        placeholder: '请输入媒体简称',
       },
     },
     {
@@ -199,59 +157,26 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择媒体状态',
       },
     },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
-    {
-      fieldName: 'updateTime',
-      label: '更新时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
   ];
 }
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<SspMediaApi.Media>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+  // { type: 'checkbox', width: 40 },
     {
       field: 'id',
-      title: 'ID',
+      title: '媒体ID',
       minWidth: 120,
     },
     {
       field: 'account',
-      title: '账号名',
+      title: '媒体账号',
       minWidth: 120,
     },
     {
       field: 'mediaCompanyShort',
-      title: '公司简称',
-      minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '媒体名称',
-      minWidth: 120,
-    },
-    {
-      field: 'mediaCompanyName',
-      title: '公司名称',
-      minWidth: 120,
-    },
-    {
-      field: 'mediaCompanyAddress',
-      title: '公司地址',
+      title: '媒体简称',
       minWidth: 120,
     },
     {

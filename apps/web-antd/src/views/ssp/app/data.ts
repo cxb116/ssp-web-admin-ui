@@ -7,8 +7,6 @@ import { getDictOptions } from '@vben/hooks';
 
 import { getMediaSimpleList } from '#/api/ssp/media';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -54,6 +52,10 @@ export function useFormSchema(): VbenFormSchema[] {
         options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
         placeholder: '请选择操作系统',
       },
+      dependencies: {
+        triggerFields: ['id'],
+        disabled: (values) => !!values.id,
+      },
     },
     {
       fieldName: 'accessType',
@@ -74,14 +76,14 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入包名',
       },
     },
-    {
-      fieldName: 'downloadUrl',
-      label: '下载地址',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入下载地址',
-      },
-    },
+    // {
+    //   fieldName: 'downloadUrl',
+    //   label: '下载地址',
+    //   component: 'Input',
+    //   componentProps: {
+    //     placeholder: '请输入下载地址',
+    //   },
+    // },
     {
       fieldName: 'enable',
       label: '应用状态',
@@ -100,7 +102,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体名称',
+      label: '媒体简称',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
@@ -153,41 +155,40 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择应用状态',
       },
     },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
   ];
 }
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<SspAppApi.App>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+  // { type: 'checkbox', width: 40, align: 'left' },
     {
       field: 'id',
-      title: 'ID',
+      title: '媒体应用ID',
       minWidth: 120,
+      align: 'center',
     },
     {
-      field: 'mediaId',
-      title: '媒体Id',
-      minWidth: 120,
+      field: 'mediaShort',
+      title: '媒体简称',
+      minWidth: 150,
+      align: 'center',
+      cellRender: {
+        name: 'CellFormat',
+        props: { format: '{{row.mediaShort}}（{{row.mediaId}}）' },
+      },
     },
     {
       field: 'name',
       title: '应用名称',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'osType',
       title: '操作系统',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_OS_TYPE },
@@ -197,6 +198,7 @@ export function useGridColumns(): VxeTableGridOptions<SspAppApi.App>['columns'] 
       field: 'accessType',
       title: '接入方式',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_ACCESS_TYPE },
@@ -206,16 +208,19 @@ export function useGridColumns(): VxeTableGridOptions<SspAppApi.App>['columns'] 
       field: 'pkg',
       title: '包名',
       minWidth: 120,
+      align: 'center',
     },
-    {
-      field: 'downloadUrl',
-      title: '下载地址',
-      minWidth: 120,
-    },
+    // {
+    //   field: 'downloadUrl',
+    //   title: '下载地址',
+    //   minWidth: 120,
+    //   align: 'left',
+    // },
     {
       field: 'enable',
       title: '应用状态',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_ENABLE },
@@ -225,27 +230,32 @@ export function useGridColumns(): VxeTableGridOptions<SspAppApi.App>['columns'] 
       field: 'creator',
       title: '创建者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'createTime',
       title: '创建时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       field: 'updater',
       title: '更新者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'updateTime',
       title: '更新时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
       width: 200,
+      align: 'center',
       fixed: 'right',
       slots: { default: 'actions' },
     },

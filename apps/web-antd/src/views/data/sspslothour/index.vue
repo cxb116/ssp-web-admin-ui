@@ -1,31 +1,23 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
-import type { DataSspSlotDayApi } from '#/api/data/sspslotday';
+import type { DataSspSlotHourApi } from '#/api/data/sspslothour';
 
 import { reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
+import { Page } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
-import { getSlotInfoPageSsp } from '#/api/data/dspslotday';
 import {
-  exportSspSlotDay,
-  getSspSlotDayPage,
-} from '#/api/data/sspslotday';
+  exportSspSlotHour,
+  getSspSlotHourPage,
+  getSSPDspSlotHour,
+} from '#/api/data/sspslothour';
 
 import { useGridColumns, useGridFormSchema } from './data';
-import Form from './modules/form.vue';
-
-const [FormModal] = useVbenModal({
-  connectedComponent: Form,
-  destroyOnClose: true,
-});
 
 const route = useRoute();
 const router = useRouter();
@@ -37,7 +29,7 @@ function osTypeLabel(val?: number): string {
   return osTypeMap[val] || String(val);
 }
 
-/** 从路由 query 读取初始筛选条件（从小时报表切回时带入） */
+/** 从路由 query 读取初始筛选条件 */
 function getInitialFormValues() {
   const query = route.query;
   const formValues: Record<string, any> = {};
@@ -46,6 +38,9 @@ function getInitialFormValues() {
   }
   if (query.appId) {
     formValues.appId = Number(query.appId);
+  }
+  if (query.sspName) {
+    formValues.sspName = query.sspName;
   }
   if (query.sspSlotId) {
     formValues.sspSlotId = Number(query.sspSlotId);
@@ -64,7 +59,7 @@ function getInitialFormValues() {
 
 const initialFormValues = getInitialFormValues();
 
-const detailMap = reactive<Record<number, DataDspSlotDayApi.DspSlotDay[]>>({});
+const detailMap = reactive<Record<number, DataSspSlotHourApi.SspSlotHour[]>>({});
 
 function clearDetailMap() {
   for (const id of Object.keys(detailMap)) {
@@ -72,32 +67,27 @@ function clearDetailMap() {
   }
 }
 
-function handleRefresh() {
-  clearDetailMap();
-  gridApi.query();
-}
-
-function getExpandedDetails(row: DataSspSlotDayApi.SspSlotDay) {
+function getExpandedDetails(row: DataSspSlotHourApi.SspSlotHour) {
   return detailMap[row.id!] || [];
 }
 
-/** 点击主表展开，加载预算广告位日报子表 */
-async function handleExpandChange(row: DataSspSlotDayApi.SspSlotDay, expanded: boolean) {
+/** 展开主表行时，调用 getSSPDspSlotHour 加载子表数据 */
+async function handleExpandChange(
+  row: DataSspSlotHourApi.SspSlotHour,
+  expanded: boolean,
+) {
   if (!expanded) {
     return;
   }
   delete detailMap[row.id!];
-  // 主表字段：date + sspSlotId（后端 /data/dsp-slot-day/dsp_ssp_day）
-  const result = await getSlotInfoPageSsp({
+  // 主表字段：date + sspSlotId
+  const result = await getSSPDspSlotHour({
     date: row.date,
     sspSlotId: row.sspSlotId,
   });
-  detailMap[row.id!] = Array.isArray(result) ? result : ((result as any)?.list || []);
-}
-
-async function handleExport() {
-  const data = await exportSspSlotDay(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({ fileName: '媒体广告位报表.xls', source: data });
+  detailMap[row.id!] = Array.isArray(result)
+    ? result
+    : ((result as any)?.list || []);
 }
 
 /** 收集当前筛选条件 */
@@ -128,30 +118,34 @@ async function getFilterQuery() {
   return query;
 }
 
-/** 当前已在日报表 */
-function handleDayReport() {
-  // 已在日报表页
-}
-
-/** 跳转小时报表 */
-async function handleHourReport() {
+/** 跳转日报表 */
+async function handleDayReport() {
   router.push({
-    name: 'DataSspSlotHour',
+    name: 'DataSspSlotDay',
     query: await getFilterQuery(),
   });
 }
 
-/** 跳转折线报表 */
+/** 当前已在小时报表 */
+function handleHourReport() {
+  // 已在小时报表页
+}
+
 function handleChartReport() {
   message.info('折线报表功能开发中');
 }
 
-function handleSspSlotIdClick(row: DataSspSlotDayApi.SspSlotDay) {
+/** 导出表格 */
+async function handleExport() {
+  const data = await exportSspSlotHour(await gridApi.formApi.getValues());
+  downloadFileFromBlobPart({ fileName: '媒体广告位小时报.xls', source: data });
+}
+
+function handleSspSlotIdClick(row: DataSspSlotHourApi.SspSlotHour) {
   if (row.sspSlotId) {
     router.push(`/ssp/slot-info/config/${row.sspSlotId}`);
   }
 }
-
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -170,22 +164,28 @@ const [Grid, gridApi] = useVbenVxeGrid({
     pagerConfig: {
       pageSize: 10,
     },
-    sortConfig: {
-      remote: true,
-      multiple: false,
-    },
     proxyConfig: {
       ajax: {
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
+          clearDetailMap();
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
-            if (key === 'sspSlotId' || key === 'dspSlotId') continue;
+            if (key === 'date' || key === 'sspSlotId' || key === 'dspSlotId') continue;
             if (!formValues[key]) continue;
             params[key] = formValues[key];
+          }
+          // 时间：8位=全天(YYYYMMDD)，10位=指定小时(YYYYMMDDHH)
+          if (formValues.date) {
+            const dateStr = String(formValues.date);
+            if (dateStr.length === 8) {
+              const dateNum = Number(dateStr);
+              params.date = [dateNum * 100, dateNum * 100 + 23];
+            } else {
+              params.date = [Number(dateStr)];
+            }
           }
           // 空格分隔字符串转为数组
           const splitNum = (val: any) => {
@@ -198,10 +198,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
           if (formValues.dspSlotId) {
             params.dspSlotId = splitNum(formValues.dspSlotId);
           }
-          return await getSspSlotDayPage(params);
+          return await getSspSlotHourPage(params);
         },
       },
-      sort: true,
     },
     rowConfig: {
       keyField: 'id',
@@ -211,14 +210,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
       refresh: true,
       search: true,
     },
-  } as VxeTableGridOptions<DataSspSlotDayApi.SspSlotDay>,
+  } as VxeTableGridOptions<DataSspSlotHourApi.SspSlotHour>,
   gridEvents: {
     toggleRowExpand: ({
       expanded,
       row,
     }: {
       expanded: boolean;
-      row: DataSspSlotDayApi.SspSlotDay;
+      row: DataSspSlotHourApi.SspSlotHour;
     }) => {
       handleExpandChange(row, expanded);
     },
@@ -228,10 +227,20 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <FormModal @success="handleRefresh" />
     <Grid>
+      <template #toolbar-actions>
+        <div class="flex items-center gap-3">
+          <div class="text-[1rem] font-bold">媒体广告位报表</div>
+          <a-button @click="handleDayReport">日报表</a-button>
+          <a-button type="primary" @click="handleHourReport">小时报表</a-button>
+          <a-button @click="handleChartReport">折线报表</a-button>
+        </div>
+      </template>
       <template #sspSlotId-slot="{ row }">
-        <span style="cursor: pointer; color: #1890ff" @click="handleSspSlotIdClick(row)">
+        <span
+          style="cursor: pointer; color: #1890ff"
+          @click="handleSspSlotIdClick(row)"
+        >
           {{ row.sspSlotId }}
         </span>
       </template>
@@ -242,21 +251,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
         <span>{{ row.income != null ? (row.income / 100).toFixed(2) : '-' }}</span>
       </template>
       <template #mediaName-slot="{ row }">
-        <span>{{ row.mediaName || '' }}{{ row.mediaId ? `(${row.mediaId})` : '' }}</span>
+        <span>{{ row.mediaName || '-' }}</span>
       </template>
       <template #appName-slot="{ row }">
-        <span>{{ row.appName || '' }}{{ row.appId ? `(${row.appId})` : '' }}</span>
+        <span>{{ row.appName || '-' }}</span>
       </template>
       <template #osType-slot="{ row }">
         <span>{{ osTypeLabel(row.osType) }}</span>
-      </template>
-      <template #toolbar-actions>
-        <div class="flex items-center gap-3">
-          <div class="text-[1rem] font-bold">媒体广告位报表</div>
-          <a-button type="primary" @click="handleDayReport">日报表</a-button>
-          <a-button @click="handleHourReport">小时报表</a-button>
-          <a-button @click="handleChartReport">折线报表</a-button>
-        </div>
       </template>
       <template #expand_content="{ row }">
         <VxeTable
@@ -266,7 +267,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           size="small"
           align="center"
         >
-          <VxeColumn title="日期" field="date" width="120" />
+          <VxeColumn title="时间" field="date" width="120" />
           <VxeColumn title="公司名称" field="companyName" width="120" />
           <VxeColumn title="产品名称" field="productName" width="150" />
           <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
@@ -288,9 +289,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
         </VxeTable>
       </template>
       <template #toolbar-tools>
-        <a-button type="primary" @click="handleExport">
-          导出
-        </a-button>
+        <a-button type="primary" @click="handleExport"> 导出 </a-button>
       </template>
     </Grid>
   </Page>

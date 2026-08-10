@@ -17,6 +17,7 @@ import {
   deleteSlotInfoList,
   exportSlotInfo,
   getSlotInfoPage,
+  updateSlotInfo,
 } from '#/api/ssp/sspSlotInfo';
 import { $t } from '#/locales';
 
@@ -51,6 +52,56 @@ function handleConfig(row: SspSlotInfoApi.SlotInfo) {
     name: 'SspSlotInfoConfig',
     params: { id: row.id },
   });
+}
+
+/** 配置并通过：将审核中状态改为正常后跳转配置页 */
+async function handleConfigAndPass(row: SspSlotInfoApi.SlotInfo) {
+  const hideLoading = message.loading({
+    content: '正在更新状态...',
+    duration: 0,
+  });
+  try {
+    await updateSlotInfo({ id: row.id, enable: 1 });
+    message.success('状态已更新');
+    router.push({
+      name: 'SspSlotInfoConfig',
+      params: { id: row.id },
+    });
+  } finally {
+    hideLoading();
+  }
+}
+
+/** 根据行状态生成操作按钮 */
+function getRowActions(row: SspSlotInfoApi.SlotInfo) {
+  const configAction =
+    row.enable === 2
+      ? {
+          label: '配置并通过',
+          type: 'link' as const,
+          icon: ACTION_ICON.SETTINGS,
+          auth: ['ssp:slot-info:update'],
+          onClick: handleConfigAndPass.bind(null, row),
+        }
+      : {
+          label: '配置',
+          type: 'link' as const,
+          icon: ACTION_ICON.SETTINGS,
+          auth: ['ssp:slot-info:update'],
+          disabled: row.enable === 0 || row.enable === 3,
+          onClick: handleConfig.bind(null, row),
+        };
+
+  return [
+    {
+      label: $t('common.edit'),
+      type: 'link',
+      icon: ACTION_ICON.EDIT,
+      auth: ['ssp:slot-info:update'],
+      onClick: handleEdit.bind(null, row),
+    },
+    configAction,
+  ];
 }
 
 /** 删除媒体广告位 */
@@ -112,11 +163,26 @@ const [Grid, gridApi] = useVbenVxeGrid({
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          return await getSlotInfoPage({
+          const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...formValues,
-          });
+          };
+          for (const key of Object.keys(formValues)) {
+            if (key === 'id' || key === 'nameAlise') continue;
+            if (!formValues[key]) continue;
+            params[key] = formValues[key];
+          }
+          const splitStr = (val: any) => {
+            const s = String(val ?? '').trim();
+            return s ? s.split(/\s+/) : undefined;
+          };
+          if (formValues.id) {
+            params.id = splitStr(formValues.id);
+          }
+          if (formValues.nameAlise) {
+            params.nameAlise = splitStr(formValues.nameAlise);
+          }
+          return await getSlotInfoPage(params);
         },
       },
     },
@@ -140,6 +206,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <Grid table-title="媒体广告位列表">
+      <template #mediaName-slot="{ row }">
+        <span>{{ row.mediaName || '' }}{{ row.mediaId ? `(${row.mediaId})` : '' }}</span>
+      </template>
+      <template #appName-slot="{ row }">
+        <span>{{ row.appName || '' }}{{ row.appId ? `(${row.appId})` : '' }}</span>
+      </template>
       <template #toolbar-tools>
         <TableAction
           :actions="[
@@ -157,48 +229,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['ssp:slot-info:export'],
               onClick: handleExport,
             },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'primary',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['ssp:slot-info:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
           ]"
         />
       </template>
       <template #actions="{ row }">
-        <TableAction
-          :actions="[
-            {
-              label: $t('common.edit'),
-              type: 'link',
-              icon: ACTION_ICON.EDIT,
-              auth: ['ssp:slot-info:update'],
-              onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: '配置',
-              type: 'link',
-              icon: ACTION_ICON.SETTINGS,
-              auth: ['ssp:slot-info:update'],
-              onClick: handleConfig.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'link',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['ssp:slot-info:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
-              },
-            },
-          ]"
-        />
+        <TableAction :actions="getRowActions(row)" />
       </template>
     </Grid>
   </Page>

@@ -9,6 +9,7 @@ export namespace DspProductApi {
     id: number; // ID
     name?: string; // 产品名称
     companyId?: number; // 公司id
+    osType?: number; // 操作系统
   }
 }
 
@@ -52,4 +53,17 @@ export function deleteProductList(ids: number[]) {
 /** 导出预算产品 */
 export function exportProduct(params: any) {
   return requestClient.download('/dsp/product/export-excel', { params });
+}
+
+/** 下载预算产品导入模板 */
+export function importProductTemplate() {
+  return requestClient.download('/dsp/product/get-import-template');
+}
+
+/** 导入预算产品 */
+export function importProduct(file: File, updateSupport: boolean) {
+  return requestClient.upload('/dsp/product/import', {
+    file,
+    updateSupport,
+  });
 }

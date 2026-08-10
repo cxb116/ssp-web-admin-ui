@@ -3,9 +3,8 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DspProductApi } from '#/api/dsp/product';
 import type { DspCompanyApi } from '#/api/dsp/company';
 
+import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
-
-import { getRangePickerDefaultProps } from '#/utils';
 
 import { getCompanyPage } from '#/api/dsp/company';
 
@@ -29,25 +28,34 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'name',
-      label: '产品名称',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入产品名称',
-      },
-    },
-    {
       fieldName: 'companyId',
-      label: '公司名称',
+      label: '预算公司名称',
       rules: 'required',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getCompanyOptions,
-        placeholder: '请选择公司名称',
+        placeholder: '请选择预算公司名称',
         showSearch: true,
         filterOption: false,
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '预算产品名称',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入预算产品名称',
+      },
+    },
+    {
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
       },
     },
   ];
@@ -58,41 +66,33 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'name',
-      label: '产品名称',
+      label: '预算产品名称',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入产品名称',
+        placeholder: '请输入预算产品名称',
       },
     },
     {
       fieldName: 'companyId',
-      label: '公司名称',
+      label: '预算公司名称',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getCompanyOptions,
-        placeholder: '请选择公司名称',
+        placeholder: '请选择预算公司名称',
         showSearch: true,
         filterOption: false,
       },
     },
     {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
       componentProps: {
-        ...getRangePickerDefaultProps(),
         allowClear: true,
-      },
-    },
-    {
-      fieldName: 'updateTime',
-      label: '更新时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
       },
     },
   ];
@@ -101,48 +101,65 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspProductApi.Product>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
     {
       field: 'id',
-      title: 'ID',
+      title: '预算产品ID',
       minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '产品名称',
-      minWidth: 120,
+      align: 'center',
     },
     {
       field: 'companyName',
-      title: '公司名称',
+      title: '预算公司名称',
       minWidth: 120,
+      align: 'center',
+    },
+    {
+      field: 'name',
+      title: '预算产品名称',
+      minWidth: 120,
+      align: 'center',
+    },
+    {
+      field: 'osType',
+      title: '操作系统',
+      minWidth: 120,
+      align: 'center',
+      cellRender: {
+        name: 'CellDict',
+        props: { type: DICT_TYPE.SSP_OS_TYPE },
+      },
     },
     {
       field: 'creator',
       title: '创建者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'createTime',
       title: '创建时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       field: 'updater',
       title: '更新者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'updateTime',
       title: '更新时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
       width: 200,
       fixed: 'right',
+      align: 'center',
       slots: { default: 'actions' },
     },
   ];

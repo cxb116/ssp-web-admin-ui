@@ -22,6 +22,8 @@ export namespace SspSlotInfoApi {
     accessType?: number; // 接入方式
     mediaShortName?: string; // 媒体简称名称
     appName?: string; // 应用名称
+    mediaName?: string; // 媒体名称
+    sspName?: string; // SSP内部名称
 
 
   }

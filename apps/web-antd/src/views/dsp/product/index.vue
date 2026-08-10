@@ -2,17 +2,14 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DspProductApi } from '#/api/dsp/product';
 
-import { ref } from 'vue';
-
-import { confirm, Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
+import { Page, useVbenModal } from '@vben/common-ui';
+import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { message } from 'ant-design-vue';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
   deleteProduct,
-  deleteProductList,
   exportProduct,
   getProductPage,
 } from '#/api/dsp/product';
@@ -20,9 +17,15 @@ import { $t } from '#/locales';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import ImportForm from './modules/import-form.vue';
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
+  destroyOnClose: true,
+});
+
+const [ImportModal, importModalApi] = useVbenModal({
+  connectedComponent: ImportForm,
   destroyOnClose: true,
 });
 
@@ -34,6 +37,11 @@ function handleRefresh() {
 /** 创建预算产品 */
 function handleCreate() {
   formModalApi.setData(null).open();
+}
+
+/** 导入预算产品 */
+function handleImport() {
+  importModalApi.open();
 }
 
 /** 编辑预算产品 */
@@ -54,32 +62,6 @@ async function handleDelete(row: DspProductApi.Product) {
   } finally {
     hideLoading();
   }
-}
-
-/** 批量删除预算产品 */
-async function handleDeleteBatch() {
-  await confirm($t('ui.actionMessage.deleteBatchConfirm'));
-  const hideLoading = message.loading({
-    content: $t('ui.actionMessage.deletingBatch'),
-    duration: 0,
-  });
-  try {
-    await deleteProductList(checkedIds.value);
-    checkedIds.value = [];
-    message.success($t('ui.actionMessage.deleteSuccess'));
-    handleRefresh();
-  } finally {
-    hideLoading();
-  }
-}
-
-const checkedIds = ref<number[]>([]);
-function handleRowCheckboxChange({
-  records,
-}: {
-  records: DspProductApi.Product[];
-}) {
-  checkedIds.value = records.map((item) => item.id!);
 }
 
 /** 导出表格 */
@@ -117,43 +99,39 @@ const [Grid, gridApi] = useVbenVxeGrid({
       search: true,
     },
   } as VxeTableGridOptions<DspProductApi.Product>,
-  gridEvents: {
-    checkboxAll: handleRowCheckboxChange,
-    checkboxChange: handleRowCheckboxChange,
-  },
 });
 </script>
 
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
+    <ImportModal @success="handleRefresh" />
     <Grid table-title="预算产品列表">
       <template #toolbar-tools>
         <TableAction
           :actions="[
             {
-              label: $t('ui.actionTitle.create', ['预算产品']),
+              label: $t('ui.actionTitle.create', ['预算应用']),
               type: 'primary',
               icon: ACTION_ICON.ADD,
               auth: ['dsp:product:create'],
               onClick: handleCreate,
             },
             {
-              label: $t('ui.actionTitle.export'),
+              label: '导入',
               type: 'primary',
-              icon: ACTION_ICON.DOWNLOAD,
+              icon: ACTION_ICON.UPLOAD,
+              auth: ['dsp:product:import'],
+              onClick: handleImport,
+            },
+            {
+              label: '导出',
+              type: 'primary',
+              icon: ACTION_ICON.EXPORT,
               auth: ['dsp:product:export'],
               onClick: handleExport,
             },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'primary',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['dsp:product:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
+
           ]"
         />
       </template>
@@ -167,17 +145,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['dsp:product:update'],
               onClick: handleEdit.bind(null, row),
             },
-            {
-              label: $t('common.delete'),
-              type: 'link',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['dsp:product:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
-              },
-            },
+
           ]"
         />
       </template>

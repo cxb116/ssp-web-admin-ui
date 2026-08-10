@@ -145,15 +145,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['ssp:media:export'],
               onClick: handleExport,
             },
-            {
-              label: $t('ui.actionTitle.deleteBatch'),
-              type: 'primary',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['ssp:media:delete'],
-              disabled: isEmpty(checkedIds),
-              onClick: handleDeleteBatch,
-            },
           ]"
         />
       </template>
@@ -166,17 +157,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
               icon: ACTION_ICON.EDIT,
               auth: ['ssp:media:update'],
               onClick: handleEdit.bind(null, row),
-            },
-            {
-              label: $t('common.delete'),
-              type: 'link',
-              danger: true,
-              icon: ACTION_ICON.DELETE,
-              auth: ['ssp:media:delete'],
-              popConfirm: {
-                title: $t('ui.actionMessage.deleteConfirm', [row.id]),
-                confirm: handleDelete.bind(null, row),
-              },
             },
           ]"
         />

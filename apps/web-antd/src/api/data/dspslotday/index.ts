@@ -29,6 +29,16 @@ export namespace DataDspSlotDayApi {
     completePv?: number; // 完成量
     installPv?: number; // 安装量
     activatePv?: number; // 激活量
+    companyName?: string; // 公司名称
+    productName?: string; // 产品名称
+    dspName?: string; // 预算位名称
+    fillRate?: number; // 填充率
+    displayRate?: number; // 展现率
+    clickRate?: number; // 点击率
+    ecpm?: number; // ecpm
+    mediaEcpm?: number; // 媒体ecpm
+    ecprm?: number; // ecprm
+    mediaEcprm?: number; // 媒体ecprm
   }
 }
 
@@ -36,6 +46,18 @@ export namespace DataDspSlotDayApi {
 export function getDspSlotDayPage(params: PageParam) {
   return requestClient.get<PageResult<DataDspSlotDayApi.DspSlotDay>>(
     '/data/dsp-slot-day/page',
+    { params },
+  );
+}
+
+/** 媒体广告位日报：点击主表展开时加载预算广告位子表（参数取自主表 date、sspSlotId） */
+export function getSlotInfoPageSsp(params: {
+  date?: number;
+  sspSlotId?: number;
+  dspSlotId?: number;
+}) {
+  return requestClient.get<DataDspSlotDayApi.DspSlotDay[]>(
+    '/data/dsp-slot-day/dsp_ssp_day',
     { params },
   );
 }

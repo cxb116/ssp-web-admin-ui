@@ -32,6 +32,17 @@ export namespace DataSspSlotDayApi {
     activatePv: number; // 激活量
     date: number; // 日期 
     createdAt: number; // 创建时间戳
+    mediaName?: string; // 媒体公司简称
+    appName?: string; // 应用名称
+    osType?: number; // 操作系统类型
+    sspName?: string; // SSP名称
+    fillRate?: number; // 填充率
+    displayRate?: number; // 展现率
+    clickRate?: number; // 点击率
+    ecpm?: number; // ecpm
+    mediaEcpm?: number; // 媒体ecpm
+    ecprm?: number; // ecprm
+    mediaEcprm?: number; // 媒体ecprm
   }
 }
 
@@ -39,6 +50,14 @@ export namespace DataSspSlotDayApi {
 export function getSspSlotDayPage(params: PageParam) {
   return requestClient.get<PageResult<DataSspSlotDayApi.SspSlotDay>>(
     '/data/ssp-slot-day/page',
+    { params },
+  );
+}
+
+/** 查询DSP-SSP广告位报分页 子表数据 */
+export function getSSPDspSlotDay(params: any) {
+  return requestClient.get<DataSspSlotDayApi.SspSlotDay[]>(
+    '/data/ssp-slot-day/dsp_ssp_day',
     { params },
   );
 }

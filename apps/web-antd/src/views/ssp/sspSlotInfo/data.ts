@@ -7,8 +7,6 @@ import type { SspAppApi } from '#/api/ssp/app';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
 import { getMediaSimpleList } from '#/api/ssp/media';
 import { getAppPage } from '#/api/ssp/app';
 import { getSlotInfoPage } from '#/api/ssp/sspSlotInfo';
@@ -35,6 +33,20 @@ async function getSlotInfoOptions() {
     label: `${slot.name || ''}(${slot.id})`,
     value: slot.id,
   }));
+}
+
+async function getSlotNameOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  (res.list || []).forEach((slot: SspSlotInfoApi.SlotInfo) => {
+    const name = slot.name;
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      options.push({ label: name, value: name });
+    }
+  });
+  return options;
 }
 
 /** 新增/修改的表单 */
@@ -100,15 +112,15 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请选择广告场景',
       },
     },
-    {
-      fieldName: 'adSize',
-      label: '样式尺寸',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.SSP_AD_SIZE, 'number'),
-        placeholder: '请选择样式尺寸',
-      },
-    },
+    // {
+    //   fieldName: 'adSize',
+    //   label: '样式尺寸',
+    //   component: 'Select',
+    //   componentProps: {
+    //     options: getDictOptions(DICT_TYPE.SSP_AD_SIZE, 'number'),
+    //     placeholder: '请选择样式尺寸',
+    //   },
+    // },
     {
       fieldName: 'sspPayType',
       label: '结算方式',
@@ -143,11 +155,11 @@ export function useFormSchema(): VbenFormSchema[] {
         placeholder: '请输入固价',
       },
     },
-    {
-      fieldName: 'adImage',
-      label: '广告位图片',
-      component: 'ImageUpload',
-    },
+    // {
+    //   fieldName: 'adImage',
+    //   label: '广告位图片',
+    //   component: 'ImageUpload',
+    // },
     {
       fieldName: 'enable',
       label: '状态',
@@ -166,11 +178,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'id',
-      label: '广告位ID',
+      label: '媒体广告位ID',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入广告位ID',
+        placeholder: '多个用空格分隔',
       },
     },
     {
@@ -188,19 +200,34 @@ export function useGridFormSchema(): VbenFormSchema[] {
       label: '应用名称',
       component: 'ApiSelect',
       componentProps: {
+        mode: 'multiple',
         allowClear: true,
         api: getAppOptions,
         dependencies: ['mediaId'],
         placeholder: '请选择应用名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
       fieldName: 'name',
       label: '广告位名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
+        mode: 'multiple',
         allowClear: true,
-        placeholder: '请输入广告位名称',
+        api: getSlotNameOptions,
+        placeholder: '请选择广告位名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
@@ -209,7 +236,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入内部广告位名称',
+        placeholder: '多个用空格分隔',
       },
     },
     {
@@ -242,60 +269,54 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择广告位状态',
       },
     },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
-    {
-      fieldName: 'updateTime',
-      label: '更新时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
   ];
 }
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
+  // { type: 'checkbox', width: 40, align: 'left' },
     {
       field: 'id',
-      title: '广告位ID',
+      title: '媒体广告位ID',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'name',
       title: '广告位名称',
-      minWidth: 120,
+      minWidth: 240,
+      align: 'center',
     },
     {
       field: 'nameAlise',
       title: '内部广告位名称',
-      minWidth: 120,
+      minWidth: 240,
+      align: 'center',
     },
     {
-      field: 'mediaShortName',
-      title: '媒体简称',
-      minWidth: 120,
+      field: 'mediaName',
+      title: '媒体名称',
+      minWidth: 150,
+      align: 'center',
+      slots: {
+        default: 'mediaName-slot',
+      },
     },
     {
       field: 'appName',
       title: '应用名称',
-      minWidth: 120,
+      minWidth: 150,
+      align: 'center',
+      slots: {
+        default: 'appName-slot',
+      },
     },
     {
       field: 'accessType',
       title: '接入方式',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_ACCESS_TYPE },
@@ -305,6 +326,7 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
       field: 'osType',
       title: '操作系统',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_OS_TYPE },
@@ -314,6 +336,7 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
       field: 'adScene',
       title: '广告场景',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_AD_SCENE },
@@ -323,39 +346,23 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
       field: 'ls',
       title: '预算绑定',
       minWidth: 120,
-    },
-    {
-      field: 'adSize',
-      title: '样式尺寸',
-      minWidth: 120,
-      cellRender: {
-        name: 'CellDict',
-        props: { type: DICT_TYPE.SSP_AD_SIZE },
-      },
+      align: 'center',
     },
     {
       field: 'sspPayType',
       title: '结算方式',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_PAY_TYPE },
       },
     },
     {
-      field: 'sspDealRatio',
-      title: '分成系数',
-      minWidth: 120,
-    },
-    {
-      field: 'fixedPrice',
-      title: '固价',
-      minWidth: 120,
-    },
-    {
       field: 'enable',
       title: '广告位状态',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_ENABLE },
@@ -365,12 +372,14 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
       field: 'createTime',
       title: '创建时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
       width: 200,
       fixed: 'right',
+      align: 'center',
       slots: { default: 'actions' },
     },
   ];

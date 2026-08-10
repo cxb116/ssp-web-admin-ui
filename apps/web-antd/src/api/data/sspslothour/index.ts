@@ -32,6 +32,17 @@ export namespace DataSspSlotHourApi {
     activatePv: number; // 激活量
     date: number; // 时间 yyyyMMddHH
     createdAt: number; // 创建时间戳
+    mediaName?: string; // 媒体名称（关联查询）
+    appName?: string; // 应用名称（关联查询）
+    sspName?: string; // SSP名称（关联查询）
+    osType?: number; // 操作系统类型（关联查询）
+    fillRate?: number; // 填充率
+    displayRate?: number; // 展现率
+    clickRate?: number; // 点击率
+    ecpm?: number; // ecpm
+    mediaEcpm?: number; // 媒体ecpm
+    ecprm?: number; // ecprm
+    mediaEcprm?: number; // 媒体ecprm
   }
 }
 
@@ -47,6 +58,17 @@ export function getSspSlotHourPage(params: PageParam) {
 export function getSspSlotHour(id: number) {
   return requestClient.get<DataSspSlotHourApi.SspSlotHour>(
     `/data/ssp-slot-hour/get?id=${id}`,
+  );
+}
+
+/** 点击主表展开时，查询小时子表数据（参数取自主表 date、sspSlotId） */
+export function getSSPDspSlotHour(params: {
+  sspSlotId?: number;
+  date?: number;
+}) {
+  return requestClient.get(
+    '/data/dsp-slot-hour/dsp_ssp_hour',
+    { params },
   );
 }
 

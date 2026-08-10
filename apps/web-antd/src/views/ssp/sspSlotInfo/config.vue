@@ -113,47 +113,7 @@ function handlePayTypeChange(value: number) {
   slotInfo.value.sspPayType = value;
 }
 
-// 价格模块失去焦点自动保存
-async function handlePriceBlur() {
-  if (!slotInfo.value) return;
-  try {
-    await updateSlotInfo({
-      id: slotId.value,
-      sspPayType: slotInfo.value.sspPayType,
-      sspDealRatio: slotInfo.value.sspDealRatio,
-      fixedPrice: slotInfo.value.fixedPrice,
-    });
-    message.success('价格信息已保存');
-  } catch (error: any) {
-    console.error('保存价格信息失败:', error);
-    message.error('保存价格信息失败');
-  }
-}
 
-// 内部广告位名称失去焦点自动保存
-async function handleNameAliseBlur() {
-  if (!slotInfo.value) return;
-
-  // 如果内部广告位名称为空，自动生成
-  if (!slotInfo.value.nameAlise || slotInfo.value.nameAlise.trim() === '') {
-    const mediaShort = slotInfo.value?.mediaShortName || '';
-    const appName = slotInfo.value?.appName || '';
-    const osTypeLabel = getDictLabel(osTypeOptions, slotInfo.value.osType);
-    const adSceneLabel = getDictLabel(adSceneOptions, slotInfo.value.adScene);
-    slotInfo.value.nameAlise = `${mediaShort}-${appName}-${osTypeLabel}-${adSceneLabel}`;
-  }
-
-  try {
-    await updateSlotInfo({
-      id: slotId.value,
-      nameAlise: slotInfo.value.nameAlise,
-    });
-    message.success('内部广告位名称已保存');
-  } catch (error: any) {
-    console.error('保存内部广告位名称失败:', error);
-    message.error('保存内部广告位名称失败');
-  }
-}
 
 async function loadSlotInfo() {
   if (!slotId.value) {
@@ -175,17 +135,6 @@ async function loadSlotInfo() {
       const osTypeLabel = getDictLabel(osTypeOptions, slotInfo.value.osType);
       const adSceneLabel = getDictLabel(adSceneOptions, slotInfo.value.adScene);
       slotInfo.value.nameAlise = `${mediaShort}-${appName}-${osTypeLabel}-${adSceneLabel}`;
-
-      // 自动保存内部广告位名称
-      try {
-        await updateSlotInfo({
-          id: slotId.value,
-          nameAlise: slotInfo.value.nameAlise,
-        });
-        message.success('内部广告位名称已自动生成');
-      } catch {
-        console.error('保存内部广告位名称失败');
-      }
     }
 
     // 加载流量组数据
@@ -249,7 +198,7 @@ async function loadTrafficGroups() {
           imsControlUnit: '次/天',
           clkControl: launch.clk,
           clkControlUnit: '次/天',
-          price: launch.floorPrice,
+          price: launch.floorPrice ? launch.floorPrice / 100 : 0,
           dspPayRatio: launch.dspPayRatio || 0,
           launchTime: launch.launchTime,
           launchHours: launchHoursArr,
@@ -292,7 +241,7 @@ async function handleCaptureLog(budget: BudgetInfo) {
       dspSlotId: budget.dspSlotId,
       trafficWeight: 0,
       trafficGroup: 0,
-      floorPrice: budget.price,
+      floorPrice: budget.price ? Math.round(budget.price * 100) : 0,
       dspPayRatio: budget.dspPayRatio,
       launchTime: budget.launchTime,
       launchHour: budget.launchHours.join(''),
@@ -495,7 +444,7 @@ async function handleConfirmBind() {
   }
   const group = trafficGroups.value.find((g) => g.id === bindGroupId.value);
   if (!group) return;
-  const maxBudgetId = group.budgets.length > 0 ? Math.max(...group.budgets.map((b) => b.id)) : 0;
+  let maxBudgetId = group.budgets.length > 0 ? Math.max(...group.budgets.map((b) => b.id)) : 0;
   for (const budgetId of selectedBudgetIds.value) {
     const budgetInfo = bindBudgetList.value.find((b) => b.id === budgetId);
     if (budgetInfo) {
@@ -548,11 +497,22 @@ function handleHourMouseUp() {
 
 // ==================== 绑定预算表格列配置 ====================
 
-// 检查预算广告位是否已绑定（排除当前正在操作的卡片）
+// 已绑定的预算广告位ID集合（跨所有流量组）
+const boundDspSlotIds = computed(() => {
+  const ids = new Set<number>();
+  trafficGroups.value.forEach((g) => {
+    g.budgets.forEach((b) => {
+      if (b.dspSlotId > 0) {
+        ids.add(b.dspSlotId);
+      }
+    });
+  });
+  return ids;
+});
+
+// 检查预算广告位是否已绑定
 function isBudgetBound(dspSlotId: number): boolean {
-  const group = trafficGroups.value.find((g) => g.id === bindGroupId.value);
-  if (!group) return false;
-  return group.budgets.some((b) => b.dspSlotId === dspSlotId && b.id !== bindBudgetId.value);
+  return boundDspSlotIds.value.has(dspSlotId);
 }
 
 // 单独绑定一个预算广告位
@@ -577,7 +537,7 @@ function handleBindSingle(dspSlotId: number, row: DspSlotInfoApi.SlotInfo) {
     }
   } else {
     // 创建新的预算卡片
-    const maxBudgetId = group.budgets.length > 0 ? Math.max(...group.budgets.map((b) => b.id)) : 0;
+    let maxBudgetId = group.budgets.length > 0 ? Math.max(...group.budgets.map((b) => b.id)) : 0;
     group.budgets.push({
       id: maxBudgetId + 1,
       name: row.name || '',
@@ -607,15 +567,15 @@ function handleBindSingle(dspSlotId: number, row: DspSlotInfoApi.SlotInfo) {
   message.success('绑定成功');
 }
 
-const bindTableColumns = [
+const bindTableColumns = computed(() => [
   {
-    title: 'ID',
+    title: '预算位ID',
     dataIndex: 'id',
     key: 'id',
     width: 80,
   },
   {
-    title: '广告位名称',
+    title: '预算位名称',
     dataIndex: 'name',
     key: 'name',
     width: 200,
@@ -650,24 +610,24 @@ const bindTableColumns = [
   {
     title: '操作',
     key: 'action',
-    width: 100,
+    width: 120,
     align: 'center',
     customRender: ({ record }: { record: DspSlotInfoApi.SlotInfo }) => {
       const bound = isBudgetBound(record.id);
       return bound
-        ? h('span', { class: 'text-green-500' }, '已绑定')
-        : h('a-button', {
-            size: 'small',
-            type: 'primary',
-            onClick: () => handleBindSingle(record.id, record),
-          }, '绑定');
+        ? h('span', { class: 'text-red-500' }, '已绑定')
+        : h('span', { class: 'text-green-500' }, '未绑定');
     },
   },
-];
+]);
 
 function handleBack() {
   router.back();
 }
+
+const bindRowClassName = (record: DspSlotInfoApi.SlotInfo) => {
+  return isBudgetBound(record.id) ? 'bind-table-row-bound' : '';
+};
 
 async function handleSave() {
   loading.value = true;
@@ -677,6 +637,17 @@ async function handleSave() {
       message.error('流量权重总和必须等于100%');
       loading.value = false;
       return;
+    }
+
+    // 保存价格模块和内部广告位名称
+    if (slotInfo.value) {
+      await updateSlotInfo({
+        id: slotId.value,
+        sspPayType: slotInfo.value.sspPayType,
+        sspDealRatio: slotInfo.value.sspDealRatio,
+        fixedPrice: slotInfo.value.fixedPrice,
+        nameAlise: slotInfo.value.nameAlise,
+      });
     }
 
     // 为每个流量组的每个预算广告位处理 dspLaunch 记录
@@ -691,7 +662,7 @@ async function handleSave() {
             dspSlotId: budget.dspSlotId,
             trafficWeight: group.trafficWeight,
             trafficGroup: trafficGroup,
-            floorPrice: budget.price,
+            floorPrice: budget.price ? Math.round(budget.price * 100) : 0,
             dspPayRatio: budget.dspPayRatio,
             launchTime: budget.launchTime,
             launchHour: budget.launchHours.join(''),
@@ -762,7 +733,6 @@ onMounted(() => {
                 <a-input
                   v-model:value="slotInfo.nameAlise"
                   class="flex-1"
-                  @blur="handleNameAliseBlur"
                 />
               </div>
             </div>
@@ -778,7 +748,6 @@ onMounted(() => {
                   :options="payTypeOptions"
                   class="flex-1"
                   @change="handlePayTypeChange"
-                  @blur="handlePriceBlur"
                 />
               </div>
               <template v-if="slotInfo.sspPayType === 1">
@@ -789,7 +758,6 @@ onMounted(() => {
                     :min="0"
                     :max="100"
                     class="flex-1"
-                    @blur="handlePriceBlur"
                   />
                 </div>
               </template>
@@ -800,7 +768,6 @@ onMounted(() => {
                     v-model:value="slotInfo.fixedPrice"
                     :min="0"
                     class="flex-1"
-                    @blur="handlePriceBlur"
                   />
                 </div>
               </template>
@@ -877,7 +844,7 @@ onMounted(() => {
                     <div class="p-4 space-y-4 flex-1 min-w-0">
                       <!-- 预算信息标题行 -->
                       <div class="flex items-center gap-4 mb-2 pb-2 pt-2 pl-4 pr-4 border-b border-gray-200 bg-gray-800 -mx-4 mt-0">
-                        <span class="font-medium text-white">{{ budget.name }}</span>
+                        <span class="font-medium text-white">预算广告位名称：{{ budget.name }}({{ budget.dspSlotId }})</span>
                         <span class="text-gray-400">|</span>
                         <span class="text-gray-300">广告位ID: {{ budget.dspSlotCode || budget.dspSlotId }}</span>
                         <span class="text-gray-400">|</span>
@@ -1026,7 +993,7 @@ onMounted(() => {
 
             <!-- 保存和返回按钮（居中） -->
             <div class="flex justify-center gap-4 pt-4">
-              <a-button @click="handleBack">返回</a-button>
+              <a-button @click="handleBack">取消</a-button>
               <a-button type="primary" :loading="loading" @click="handleSave">
                 保存
               </a-button>
@@ -1048,7 +1015,7 @@ onMounted(() => {
         <!-- 预算广告位名称 -->
         <a-input
           v-model:value="bindSearchName"
-          placeholder="广告位名称"
+          placeholder="预算位名称"
           class="flex-1"
           allow-clear
           @pressEnter="loadBindBudgetList"
@@ -1056,7 +1023,7 @@ onMounted(() => {
         <!-- 预算广告位编码 -->
         <a-input
           v-model:value="bindSearchDspSlotCode"
-          placeholder="广告位编码"
+          placeholder="预算广告位ID"
           class="flex-1"
           allow-clear
           @pressEnter="loadBindBudgetList"
@@ -1109,7 +1076,17 @@ onMounted(() => {
         :pagination="false"
         :scroll="{ y: 500 }"
         :columns="bindTableColumns"
+        :row-class-name="bindRowClassName"
       />
     </a-modal>
   </Page>
 </template>
+
+<style scoped>
+:deep(.bind-table-row-bound) {
+  background-color: #ffccc7;
+}
+:deep(.bind-table-row-bound:hover > td) {
+  background-color: #ffa39e !important;
+}
+</style>

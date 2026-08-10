@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
+import type { DataSspSlotDayApi } from '#/api/data/sspslotday';
 
 import { reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
@@ -14,22 +16,25 @@ import {
   exportDspSlotDay,
   getDspSlotDayPage,
 } from '#/api/data/dspslotday';
+import { getSSPDspSlotDay } from '#/api/data/sspslotday';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+
+const router = useRouter();
+
+const osTypeMap: Record<number, string> = { 1: 'Android', 2: 'iOS' };
+function osTypeLabel(val?: number): string {
+  if (val == null) return '';
+  return osTypeMap[val] || String(val);
+}
 
 const [FormModal, formModalApi] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
 
-interface DspSlotDayDetail {
-  id: number;
-  fieldName: string;
-  fieldValue: string;
-}
-
-const detailMap = reactive<Record<number, DspSlotDayDetail[]>>({});
+const detailMap = reactive<Record<number, DataSspSlotDayApi.SspSlotDay[]>>({});
 
 /** 清空展开明细缓存 */
 function clearDetailMap() {
@@ -55,34 +60,71 @@ async function handleExpandChange(row: DataDspSlotDayApi.DspSlotDay, expanded: b
     return;
   }
   delete detailMap[row.id!];
-  detailMap[row.id!] = [
-    { id: 1, fieldName: '预算位ID', fieldValue: String(row.dspSlotId) },
-    { id: 2, fieldName: '预算广告位ID', fieldValue: row.dspSlotCode || '-' },
-    { id: 3, fieldName: '媒体广告ID', fieldValue: String(row.sspSlotId) },
-    { id: 4, fieldName: '展示PV', fieldValue: String(row.showPv) },
-    { id: 5, fieldName: '展示UV', fieldValue: String(row.showUv) },
-    { id: 6, fieldName: '点击PV', fieldValue: String(row.clickPv) },
-    { id: 7, fieldName: '点击UV', fieldValue: String(row.clickUv) },
-    { id: 8, fieldName: '请求PV', fieldValue: String(row.reqPv) },
-    { id: 9, fieldName: '请求UV', fieldValue: String(row.reqUv) },
-    { id: 10, fieldName: '丢弃请求', fieldValue: String(row.discard) },
-    { id: 11, fieldName: '返回PV', fieldValue: String(row.retPv) },
-    { id: 12, fieldName: '返回UV', fieldValue: String(row.retUv) },
-    { id: 13, fieldName: '成本(分)', fieldValue: String(row.spend) },
-    { id: 14, fieldName: '收入(分)', fieldValue: String(row.income) },
-    { id: 15, fieldName: '折后点击', fieldValue: String(row.discountClickPv || 0) },
-    { id: 16, fieldName: '折后展示', fieldValue: String(row.discountShowPv || 0) },
-    { id: 17, fieldName: '调起成功', fieldValue: String(row.dplsuccPv || 0) },
-    { id: 18, fieldName: '完成量', fieldValue: String(row.completePv || 0) },
-    { id: 19, fieldName: '安装量', fieldValue: String(row.installPv || 0) },
-    { id: 20, fieldName: '激活量', fieldValue: String(row.activatePv || 0) },
-  ];
+  const result = await getSSPDspSlotDay({
+    date: row.date,
+    dspSlotId: row.dspSlotId,
+  });
+  detailMap[row.id!] = result || [];
 }
 
 /** 导出表格 */
 async function handleExport() {
   const data = await exportDspSlotDay(await gridApi.formApi.getValues());
   downloadFileFromBlobPart({ fileName: 'DSP预算广告位日期报.xls', source: data });
+}
+
+function handleSspSlotIdClick(row: DataDspSlotDayApi.DspSlotDay) {
+  if (row.sspSlotId) {
+    router.push(`/ssp/slot-info/config/${row.sspSlotId}`);
+  }
+}
+
+function handleDspNameClick(row: DataDspSlotDayApi.DspSlotDay) {
+  if (row.dspSlotId) {
+    router.push(`/dsp/dspslotinfo/config/${row.dspSlotId}`);
+  }
+}
+
+/** 收集当前筛选条件 */
+async function getFilterQuery() {
+  const formValues = await gridApi.formApi.getValues();
+  const query: Record<string, string | number> = {};
+  if (formValues.companyId) {
+    query.companyId = formValues.companyId;
+  }
+  if (formValues.productId) {
+    query.productId = formValues.productId;
+  }
+  if (formValues.osType) {
+    query.osType = formValues.osType;
+  }
+  if (formValues.dspSlotId) {
+    query.dspSlotId = formValues.dspSlotId;
+  }
+  if (formValues.dspSlotCode) {
+    query.dspSlotCode = formValues.dspSlotCode;
+  }
+  if (formValues.sspSlotId) {
+    query.sspSlotId = formValues.sspSlotId;
+  }
+  return query;
+}
+
+/** 当前已在日报表 */
+function handleDayReport() {
+  // 已在日报表页
+}
+
+/** 跳转小时报表，小时页主表加载 getDspSlotHourPage */
+async function handleHourReport() {
+  router.push({
+    name: 'DataDspSlotHour',
+    query: await getFilterQuery(),
+  });
+}
+
+function handleChartReport() {
+  message.info('查看折线图功能开发中');
 }
 
 
@@ -97,14 +139,30 @@ const [Grid, gridApi] = useVbenVxeGrid({
     },
     height: 'auto',
     keepSource: true,
+    pagerConfig: {
+      pageSize: 10,
+    },
     proxyConfig: {
       ajax: {
         query: async ({ page }, formValues) => {
-          return await getDspSlotDayPage({
+          const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...formValues,
-          });
+          };
+          for (const key of Object.keys(formValues)) {
+            if (key === 'sspSlotId') continue;
+            if (!formValues[key]) continue;
+            params[key] = formValues[key];
+          }
+          // 空格分隔字符串转为数组
+          const splitStr = (val: any) => {
+            const s = String(val ?? '').trim();
+            return s ? s.split(/\s+/) : undefined;
+          };
+          if (formValues.sspSlotId) {
+            params.sspSlotId = splitStr(formValues.sspSlotId);
+          }
+          return await getDspSlotDayPage(params);
         },
       },
     },
@@ -134,9 +192,33 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <Grid table-title="DSP预算广告位日期报列表">
-      <template #expand-cell>
-        <span style="cursor: pointer; color: #1890ff">子表数据</span>
+    <Grid>
+      <template #toolbar-actions>
+        <div class="flex items-center gap-3">
+          <div class="text-[1rem] font-bold">预算广告位报表</div>
+          <a-button type="primary" @click="handleDayReport">日报表</a-button>
+          <a-button @click="handleHourReport">小时报表</a-button>
+          <a-button @click="handleChartReport">查看折线图</a-button>
+        </div>
+      </template>
+      <template #sspSlotId-slot="{ row }">
+        <span style="cursor: pointer; color: #1890ff" @click="handleSspSlotIdClick(row)">
+          {{ row.sspSlotId }}
+        </span>
+      </template>
+      <template #dspName-slot="{ row }">
+        <span style="cursor: pointer; color: #1890ff" @click="handleDspNameClick(row)">
+          {{ row.dspName }}
+        </span>
+      </template>
+      <template #osType-slot="{ row }">
+        <span>{{ osTypeLabel(row.osType) }}</span>
+      </template>
+      <template #spend-slot="{ row }">
+        <span>{{ row.spend != null ? (row.spend / 100).toFixed(2) : '-' }}</span>
+      </template>
+      <template #income-slot="{ row }">
+        <span>{{ row.income != null ? (row.income / 100).toFixed(2) : '-' }}</span>
       </template>
       <template #expand_content="{ row }">
         <VxeTable
@@ -144,9 +226,34 @@ const [Grid, gridApi] = useVbenVxeGrid({
           border
           :show-overflow="true"
           size="small"
+          align="center"
         >
-          <VxeColumn title="字段名称" field="fieldName" width="150" />
-          <VxeColumn title="字段值" field="fieldValue" min-width="200" />
+          <VxeColumn title="日期" field="date" width="120" />
+          <VxeColumn title="媒体名称" field="sspName" width="150" />
+          <VxeColumn title="应用名称" field="appName" width="120" />
+          <VxeColumn title="操作系统" width="100">
+            <template #default="{ row }">
+              <span>{{ osTypeLabel(row.osType) }}</span>
+            </template>
+          </VxeColumn>
+          <VxeColumn title="媒体广告位名称" field="sspSlotId" width="150" />
+          <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
+          <VxeColumn title="预算广告位ID" field="dspSlotCode" width="150" />
+          <VxeColumn title="媒体广告ID" field="sspSlotId" width="120" />
+          <VxeColumn title="请求数" field="reqCount" width="100" />
+          <VxeColumn title="请求PV" field="reqPv" width="100" />
+          <VxeColumn title="丢弃请求" field="discard" width="100" />
+          <VxeColumn title="返回PV" field="retPv" width="100" />
+          <VxeColumn title="展示PV" field="showPv" width="100" />
+          <VxeColumn title="点击PV" field="clickPv" width="100" />
+          <VxeColumn title="成本(分)" field="spend" width="100" />
+          <VxeColumn title="收入(分)" field="income" width="100" />
+          <VxeColumn title="折后点击" field="discountClickPv" width="100" />
+          <VxeColumn title="折后展示" field="discountShowPv" width="100" />
+          <VxeColumn title="调起成功" field="dplsuccPv" width="100" />
+          <VxeColumn title="完成量" field="completePv" width="100" />
+          <VxeColumn title="安装量" field="installPv" width="100" />
+          <VxeColumn title="激活量" field="activatePv" width="100" />
         </VxeTable>
       </template>
       <template #toolbar-tools>

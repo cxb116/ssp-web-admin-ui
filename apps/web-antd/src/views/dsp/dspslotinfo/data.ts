@@ -7,13 +7,26 @@ import type { DspCompanyApi } from '#/api/dsp/company';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import { getRangePickerDefaultProps } from '#/utils';
-
-import { getProductPage } from '#/api/dsp/product';
+import { getProduct, getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
+import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
 
 async function getProductOptions() {
   const res = await getProductPage({ pageNo: 1, pageSize: 1000 });
+  return (res.list || []).map((product: DspProductApi.Product) => ({
+    label: `${product.name || ''}(${product.id})`,
+    value: product.id,
+  }));
+}
+
+// 表单用：接收 ApiComponent 传入的 params（含 companyId），按公司加载产品
+async function getFormProductOptions(params: { companyId?: number }) {
+  if (!params?.companyId) return [];
+  const res = await getProductPage({
+    pageNo: 1,
+    pageSize: 1000,
+    companyId: params.companyId,
+  });
   return (res.list || []).map((product: DspProductApi.Product) => ({
     label: `${product.name || ''}(${product.id})`,
     value: product.id,
@@ -26,6 +39,20 @@ async function getCompanyOptions() {
     label: `${company.name || ''}(${company.id})`,
     value: company.id,
   }));
+}
+
+async function getSlotNameOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  (res.list || []).forEach((slot: DspSlotInfoApi.SlotInfo) => {
+    const name = slot.name;
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      options.push({ label: name, value: name });
+    }
+  });
+  return options;
 }
 
 /** 新增/修改的表单 */
@@ -41,23 +68,11 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算方广告位',
+      label: '预算广告位ID',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算方广告位',
-      },
-    },
-    {
-      fieldName: 'productId',
-      label: '产品名称',
-      rules: 'required',
-      component: 'ApiSelect',
-      componentProps: {
-        api: getProductOptions,
-        placeholder: '请选择产品名称',
-        showSearch: true,
-        filterOption: false,
+        placeholder: '请输入预算广告位ID',
       },
     },
     {
@@ -65,12 +80,43 @@ export function useFormSchema(): VbenFormSchema[] {
       label: '公司名称',
       rules: 'required',
       component: 'ApiSelect',
-      componentProps: {
+      componentProps: (_values: any, formApi: any) => ({
         api: getCompanyOptions,
         placeholder: '请选择公司名称',
         showSearch: true,
         filterOption: false,
-      },
+        // 切换公司时清空已选产品
+        onChange: () => {
+          formApi.setFieldValue('productId', undefined);
+        },
+      }),
+    },
+    {
+      fieldName: 'productId',
+      label: '产品名称',
+      rules: 'required',
+      component: 'ApiSelect',
+      componentProps: (values: any, formApi: any) => ({
+        api: getFormProductOptions,
+        // 通过 params 传入 companyId，ApiComponent 会监听变化自动重新加载
+        params: { companyId: values.companyId },
+        placeholder: '请选择产品名称',
+        showSearch: true,
+        filterOption: false,
+        disabled: true,
+        // 选择产品后自动赋值操作系统
+        onChange: async (value: number | undefined) => {
+          if (!value) return;
+          try {
+            const product = await getProduct(value);
+            if (product?.osType !== undefined) {
+              formApi.setFieldValue('osType', product.osType);
+            }
+          } catch {
+            // ignore
+          }
+        },
+      }),
     },
     {
       fieldName: 'name',
@@ -89,6 +135,7 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: {
         options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
         placeholder: '请选择操作系统',
+        disabled: true,
       },
     },
     {
@@ -120,14 +167,6 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'dspAppSecret',
-      label: '预算方APPSECRET',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入预算方APPSECRET',
-      },
-    },
-    {
       fieldName: 'dspAppId',
       label: '预算方APPID',
       component: 'Input',
@@ -136,11 +175,20 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'dspAppPkg',
-      label: '预算方应用包名',
+      fieldName: 'dspAppSecret',
+      label: '预算方APPSECRET',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算方应用包名',
+        placeholder: '请输入预算方APPSECRET',
+      },
+    },
+    
+    {
+      fieldName: 'dspAppPkg',
+      label: '应用包名',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入应用包名',
       },
     },
     {
@@ -183,11 +231,11 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'dspSlotCode',
-      label: '预算方广告位',
+      label: '预算广告位ID',
       component: 'Input',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入预算方广告位',
+        placeholder: '请输入预算广告位ID',
       },
     },
     {
@@ -195,6 +243,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
       label: '产品名称',
       component: 'ApiSelect',
       componentProps: {
+        mode: 'multiple',
         allowClear: true,
         api: getProductOptions,
         placeholder: '请选择产品名称',
@@ -217,10 +266,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'name',
       label: '广告位名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
+        mode: 'multiple',
         allowClear: true,
-        placeholder: '请输入广告位名称',
+        api: getSlotNameOptions,
+        placeholder: '请选择广告位名称',
+        showSearch: true,
+        filterOption: false,
       },
     },
     {
@@ -253,60 +306,47 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择广告场景',
       },
     },
-    {
-      fieldName: 'createTime',
-      label: '创建时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
-    {
-      fieldName: 'updateTime',
-      label: '更新时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        allowClear: true,
-      },
-    },
   ];
 }
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['columns'] {
   return [
-  { type: 'checkbox', width: 40 },
     {
       field: 'id',
-      title: 'ID',
-      minWidth: 120,
+      title: '预算位ID',
+      minWidth: 90,
+      align: 'center',
+    },
+    {
+      field: 'name',
+      title: '预算名称',
+      minWidth: 190,
+      align: 'center',
     },
     {
       field: 'dspSlotCode',
-      title: '预算方广告位',
-      minWidth: 120,
+      title: '预算广告位ID',
+      minWidth: 230,
+      align: 'center',
     },
     {
       field: 'productName',
       title: '产品名称',
-      minWidth: 120,
+      minWidth: 150,
+      align: 'center',
     },
     {
       field: 'companyName',
       title: '公司名称',
       minWidth: 120,
-    },
-    {
-      field: 'name',
-      title: '广告位名称',
-      minWidth: 120,
+      align: 'center',
     },
     {
       field: 'osType',
       title: '操作系统',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_OS_TYPE },
@@ -316,6 +356,7 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
       field: 'dspPayType',
       title: '结算方式',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_PAY_TYPE },
@@ -325,6 +366,7 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
       field: 'adScene',
       title: '广告场景',
       minWidth: 120,
+      align: 'center',
       cellRender: {
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_AD_SCENE },
@@ -334,68 +376,81 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
       field: 'dspAppKey',
       title: '预算方APPKEY',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspAppSecret',
       title: '预算方APPSECRET',
-      minWidth: 120,
+      minWidth: 140,
+      align: 'center',
     },
     {
       field: 'dspAppId',
       title: '预算方APPID',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspAppPkg',
-      title: '预算方应用包名',
+      title: '应用包名',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspAppVer',
       title: '应用版本号',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspAppStoreVer',
       title: '应用商店版本号',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'priceEncryptKey',
       title: '价格加密KEY',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspAppStoreLink',
       title: '应用商店地址',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'creator',
       title: '创建者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'createTime',
       title: '创建时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       field: 'updater',
       title: '更新者',
       minWidth: 120,
+      align: 'center',
     },
     {
       field: 'updateTime',
       title: '更新时间',
       minWidth: 120,
+      align: 'center',
       formatter: 'formatDateTime',
     },
     {
       title: '操作',
       width: 200,
       fixed: 'right',
+      align: 'center',
       slots: { default: 'actions' },
     },
   ];
