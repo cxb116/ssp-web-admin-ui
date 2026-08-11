@@ -5,6 +5,36 @@ import type { SspMediaApi } from '#/api/ssp/media';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { getMediaSimpleList } from '#/api/ssp/media';
+
+async function getMediaShortOptions() {
+  const list = await getMediaSimpleList();
+  const map = new Map<string, number>();
+  list.forEach((m) => {
+    if (m.mediaCompanyShort && !map.has(m.mediaCompanyShort)) {
+      map.set(m.mediaCompanyShort, m.id!);
+    }
+  });
+  return Array.from(map.entries()).map(([name, id]) => ({
+    label: `${name}(${id})`,
+    value: name,
+  }));
+}
+
+async function getMediaAccountOptions() {
+  const list = await getMediaSimpleList();
+  const map = new Map<string, number>();
+  list.forEach((m) => {
+    if (m.account && !map.has(m.account)) {
+      map.set(m.account, m.id!);
+    }
+  });
+  return Array.from(map.entries()).map(([acc, id]) => ({
+    label: `${acc}(${id})`,
+    value: acc,
+  }));
+}
+
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -110,21 +140,35 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'account',
-      label: '媒体账号',
-      component: 'Input',
+      fieldName: 'mediaCompanyShort',
+      label: '媒体简称',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入媒体账号',
+        api: getMediaShortOptions,
+        placeholder: '请选择媒体简称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
-      fieldName: 'mediaCompanyShort',
-      label: '媒体简称',
-      component: 'Input',
+      fieldName: 'account',
+      label: '媒体账号',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入媒体简称',
+        api: getMediaAccountOptions,
+        placeholder: '请选择媒体账号',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {

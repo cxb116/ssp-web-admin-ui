@@ -1,21 +1,19 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
+import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
 import type { DspProductApi } from '#/api/dsp/product';
 import type { DspCompanyApi } from '#/api/dsp/company';
-import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
-
-import { h, ref, watch } from 'vue';
-
-import dayjs from 'dayjs';
-
-import { DatePicker, Select } from 'ant-design-vue';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import dayjs from 'dayjs';
+
 import { getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
 import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
+import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
+import { getRangePickerDefaultProps } from '#/utils';
 
 async function getProductOptions(params: { companyId?: number }) {
   const res = await getProductPage({
@@ -45,11 +43,6 @@ async function getDspSlotOptions() {
   }));
 }
 
-const hourOptions = [
-  { label: '全天', value: -1 },
-  ...Array.from({ length: 24 }, (_, i) => ({ label: `${i}`, value: i })),
-];
-
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -64,7 +57,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'dspSlotId',
       label: '预算位ID',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入预算位ID',
@@ -72,20 +64,18 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位',
-      rules: 'required',
+      label: '预算广告位ID',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算广告位',
+        placeholder: '请输入预算广告位ID',
       },
     },
     {
       fieldName: 'sspSlotId',
-      label: 'SSP slot id',
-      rules: 'required',
+      label: '媒体广告ID',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入SSP slot id',
+        placeholder: '请输入媒体广告ID',
       },
     },
     {
@@ -177,54 +167,6 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'discountClickPv',
-      label: '折后点击',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入折后点击',
-      },
-    },
-    {
-      fieldName: 'discountShowPv',
-      label: '折后展示',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入折后展示',
-      },
-    },
-    {
-      fieldName: 'dplsuccPv',
-      label: '调起成功',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入调起成功',
-      },
-    },
-    {
-      fieldName: 'completePv',
-      label: '完成量',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入完成量',
-      },
-    },
-    {
-      fieldName: 'installPv',
-      label: '安装量',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入安装量',
-      },
-    },
-    {
-      fieldName: 'activatePv',
-      label: '激活量',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入激活量',
-      },
-    },
-    {
       fieldName: 'date',
       label: '时间',
       component: 'DatePicker',
@@ -237,9 +179,64 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'createdAt',
       label: '创建时间戳',
+      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入创建时间戳',
+      },
+    },
+    {
+      fieldName: 'discountClickPv',
+      label: '折后点击',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入折后点击',
+      },
+    },
+    {
+      fieldName: 'discountShowPv',
+      label: '折后展示',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入折后展示',
+      },
+    },
+    {
+      fieldName: 'dplsuccPv',
+      label: '调起成功',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入调起成功',
+      },
+    },
+    {
+      fieldName: 'completePv',
+      label: '完成量',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入完成量',
+      },
+    },
+    {
+      fieldName: 'installPv',
+      label: '安装量',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入安装量',
+      },
+    },
+    {
+      fieldName: 'activatePv',
+      label: '激活量',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        placeholder: '请输入激活量',
       },
     },
   ];
@@ -283,7 +280,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
         allowClear: true,
         api: getProductOptions,
         dependencies: ['companyId'],
-        placeholder: '请选择产品名称',
+        placeholder: '请选择预算产品名称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -294,7 +291,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotId',
-      label: '预算位名称/ID',
+      label: '预算位名称',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
@@ -311,7 +308,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算方广告位ID',
+      label: '预算广告位ID',
       component: 'Input',
       componentProps: {
         allowClear: true,
@@ -330,59 +327,25 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'date',
       label: '时间',
-      component: {
-        props: ['modelValue'],
-        emits: ['update:modelValue'],
-        setup(props: any, { emit }: any) {
-          const dateVal = ref('');
-          const hourVal = ref(-1);
-
-          const parse = (val: any) => {
-            const v = String(val ?? dayjs().format('YYYYMMDD'));
-            if (v.length >= 10) {
-              dateVal.value = v.slice(0, 8);
-              hourVal.value = parseInt(v.slice(8), 10) || 0;
-            } else {
-              dateVal.value = v.slice(0, 8);
-              hourVal.value = -1;
-            }
-          };
-          parse(props.modelValue);
-
-          watch(() => props.modelValue, parse);
-
-          const emitValue = () => {
-            if (hourVal.value === -1) {
-              emit('update:modelValue', dateVal.value);
-            } else {
-              emit('update:modelValue', dateVal.value + String(hourVal.value).padStart(2, '0'));
-            }
-          };
-
-          return () => h('div', { style: { display: 'flex', gap: '4px', width: '100%' } }, [
-            h(DatePicker, {
-              value: dayjs(dateVal.value, 'YYYYMMDD'),
-              format: 'YYYY-MM-DD',
-              style: { flex: '1' },
-              onChange: (d: any) => { dateVal.value = d ? d.format('YYYYMMDD') : dayjs().format('YYYYMMDD'); emitValue(); },
-            }),
-            h(Select, {
-              value: hourVal.value,
-              options: hourOptions,
-              style: { width: '90px' },
-              onChange: (v: number) => { hourVal.value = v; emitValue(); },
-            }),
-          ]);
-        },
+      component: 'RangePicker',
+      componentProps: {
+        ...getRangePickerDefaultProps(),
+        format: 'YYYY-MM-DD',
+        valueFormat: 'YYYY-MM-DD',
+        showTime: false,
+        allowClear: true,
       },
-      defaultValue: dayjs().format('YYYYMMDD'),
+      defaultValue: [
+        dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD'),
+        dayjs().endOf('day').format('YYYY-MM-DD'),
+      ],
     },
   ];
 }
 
 /** 列表的字段 */
-export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
-  const columns: VxeTableGridOptions<any>['columns'] = [
+export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotDay>['columns'] {
+  const columns: VxeTableGridOptions<DataDspSlotDayApi.DspSlotDay>['columns'] = [
     {
       type: 'seq',
       title: '#',
@@ -391,23 +354,13 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       headerAlign: 'center',
     },
     {
-      type: 'expand',
-      width: 24,
-      slots: { content: 'expand_content' },
-    },
-    {
       field: 'date',
       title: '时间',
-      minWidth: 60,
-      align: 'left',
+      minWidth: 90,
       sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
-        // 兼容 2026072411 -> 11:00
-        if (str.length === 10 && /^\d{10}$/.test(str)) {
-          return `${str.slice(8, 10)}:00`;
-        }
         // 兼容 20260724 -> 2026-07-24
         if (str.length === 8 && /^\d{8}$/.test(str)) {
           return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
@@ -418,17 +371,61 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
     {
       field: 'dspName',
       title: '预算位名称',
-      minWidth: 200,
+      minWidth: 180,
+      slots: {
+        default: 'dspName-slot',
+      },
     },
     {
       field: 'dspSlotCode',
       title: '预算广告位ID',
-      minWidth: 200,
+      minWidth: 140,
+    },
+    {
+      field: 'dspSlotId',
+      title: '预算位ID',
+      minWidth: 120,
+    },
+    {
+      field: 'companyName',
+      title: '预算公司名称',
+      minWidth: 120,
     },
     {
       field: 'productName',
       title: '预算产品名称',
       minWidth: 120,
+    },
+    {
+      field: 'sspSlotId',
+      title: '媒体广告位ID',
+      minWidth: 120,
+      slots: {
+        default: 'sspSlotId-slot',
+      },
+    },
+    {
+      field: 'mediaName',
+      title: '媒体名称',
+      minWidth: 120,
+    },
+    {
+      field: 'sspName',
+      title: '媒体广告位名称',
+      minWidth: 150,
+    },
+    {
+      field: 'appName',
+      title: '应用名称',
+      minWidth: 120,
+    },
+    {
+      field: 'osType',
+      title: '操作系统',
+      minWidth: 100,
+      slots: {
+        default: 'osType-slot',
+      },
     },
     {
       field: 'reqPv',
@@ -545,19 +542,20 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
     },
     {
       field: 'spend',
-      title: '成本(元)',
+      title: '成本(分)',
       minWidth: 120,
       sortable: true,
       slots: { default: 'spend-slot' },
     },
     {
       field: 'income',
-      title: '收入(元)',
+      title: '收入(分)',
       minWidth: 120,
       sortable: true,
       slots: { default: 'income-slot' },
     },
   ];
+  // 统一设置表头和数据居中
   columns.forEach((col: any) => {
     col.align = 'center';
     col.headerAlign = 'center';

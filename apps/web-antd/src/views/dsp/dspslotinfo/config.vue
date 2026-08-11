@@ -262,12 +262,15 @@ const bindTableColumns = [
     dataIndex: 'id',
     key: 'id',
     width: 80,
+    align: 'center',
   },
   {
     title: '媒体广告位名称',
     dataIndex: 'name',
     key: 'name',
     width: 250,
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
     customRender: ({ text, record }: { text: string; record: SspSlotInfoApi.SlotInfo }) => {
       return `${text || '-'}（ID: ${record.id}）`;
     },
@@ -277,6 +280,8 @@ const bindTableColumns = [
     dataIndex: 'nameAlise',
     key: 'nameAlise',
     width: 200,
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
   },
   {
     title: '操作系统',
@@ -354,6 +359,28 @@ onMounted(async () => {
         }
       }
       await loadSspSlotBindings();
+    } else {
+      // 复制场景：从路由 query.copyFrom 读取源数据 id
+      const copyFrom = route.query.copyFrom;
+      if (copyFrom) {
+        const sourceId = Number(copyFrom);
+        const res = await getSlotInfo(sourceId);
+        // 复制时排除预算方APPSECRET、预算方APPID、预算广告位ID
+        const { dspAppSecret, dspAppId, dspSlotCode, id: _id, ...rest } = res;
+        void dspAppSecret; void dspAppId; void dspSlotCode; void _id;
+        slotInfo.value = rest;
+        if (rest?.companyId) {
+          try {
+            const productRes = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: rest.companyId });
+            productOptions.value = (productRes.list || []).map((p: any) => ({
+              label: `${p.name || ''}(${p.id})`,
+              value: p.id,
+            }));
+          } catch {
+            // ignore
+          }
+        }
+      }
     }
   } finally {
     loading.value = false;
@@ -736,7 +763,7 @@ function handleBack() {
     <a-modal
       title="绑定媒体广告位"
       v-model:open="bindModalVisible"
-      :width="1000"
+      :width="1300"
       :footer="null"
     >
       <div class="mb-4 flex gap-3">

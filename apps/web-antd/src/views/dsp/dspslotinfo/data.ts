@@ -320,7 +320,7 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
     },
     {
       field: 'name',
-      title: '预算名称',
+      title: '预算位名称',
       minWidth: 190,
       align: 'center',
     },
@@ -328,7 +328,8 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
       field: 'dspSlotCode',
       title: '预算广告位ID',
       minWidth: 230,
-      align: 'center',
+      align: 'left',
+      headerAlign: 'center',
     },
     {
       field: 'productName',

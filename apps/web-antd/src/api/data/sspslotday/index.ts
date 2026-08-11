@@ -54,6 +54,14 @@ export function getSspSlotDayPage(params: PageParam) {
   );
 }
 
+/** 查询今天数据总和 */
+export function getSspSlotDaySum(date: number) {
+  return requestClient.get<DataSspSlotDayApi.SspSlotDay>(
+    '/data/ssp-slot-day/sum',
+    { params: { date } },
+  );
+}
+
 /** 查询DSP-SSP广告位报分页 子表数据 */
 export function getSSPDspSlotDay(params: any) {
   return requestClient.get<DataSspSlotDayApi.SspSlotDay[]>(

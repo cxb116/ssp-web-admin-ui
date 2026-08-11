@@ -74,6 +74,13 @@ async function handleExport() {
   downloadFileFromBlobPart({ fileName: '预算广告位.xls', source: data });
 }
 
+/** 复制广告位：跳转到新增页面，并通过路由 query 传 copyFrom */
+function handleCopy(row: DspSlotInfoApi.SlotInfo) {
+  router.push({
+    path: '/dsp/dspslotinfo/config',
+    query: { copyFrom: String(row.id) },
+  });
+}
 
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
@@ -128,7 +135,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['dsp:slot-info:import'],
               onClick: handleImport,
             },
-
+            {
+              label: '导出',
+              type: 'primary',
+              icon: ACTION_ICON.EXPORT,
+              auth: ['dsp:slot-info:export'],
+              onClick: handleExport,
+            },
           ]"
         />
       </template>
@@ -142,7 +155,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
               auth: ['dsp:slot-info:update'],
               onClick: () => router.push(`/dsp/dspslotinfo/config/${row.id}`),
             },
-
+            {
+              label: '复制',
+              type: 'link',
+              icon: ACTION_ICON.COPY,
+              auth: ['dsp:slot-info:create'],
+              onClick: () => handleCopy(row),
+            },
           ]"
         />
       </template>

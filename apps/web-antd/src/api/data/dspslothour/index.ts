@@ -81,10 +81,16 @@ export function exportDspSlotHour(params: any) {
   return requestClient.download('/data/dsp-slot-hour/export-excel', { params });
 }
 
+/** 导出预算广告位小时报详情（与表格表头一致） */
+export function exportDspSlotHourDetail(params: any) {
+  return requestClient.download('/data/dsp-slot-hour/export-excel-detail', { params });
+}
+
 /** 兼容旧命名空间引用 */
 export const DspSlotHourApi = {
   getDspSlotHourPage,
   getSSPDspSlotHour,
   getDspSlotHour,
   exportDspSlotHour,
+  exportDspSlotHourDetail,
 };

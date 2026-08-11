@@ -348,6 +348,9 @@ const companySearchKeyword = ref('');
 // 产品下拉数据
 const productOptions = ref<{ label: string; value: number }[]>([]);
 const productSearchKeyword = ref('');
+// 预算位名称和ID下拉数据
+const bindNameOptions = ref<{ label: string; value: string }[]>([]);
+const bindDspSlotCodeOptions = ref<{ label: string; value: string }[]>([]);
 
 async function handleBindBudget(groupId: number, budgetId: number = 0) {
   bindGroupId.value = groupId;
@@ -360,6 +363,7 @@ async function handleBindBudget(groupId: number, budgetId: number = 0) {
   bindModalVisible.value = true;
   await loadCompanyOptions();
   await loadProductOptions();
+  await loadBindSearchOptions();
   await loadBindBudgetList();
 }
 
@@ -395,6 +399,32 @@ async function loadProductOptions(keyword?: string) {
     }));
   } catch {
     console.error('加载产品列表失败');
+  }
+}
+
+// 加载预算位名称和ID下拉数据
+async function loadBindSearchOptions() {
+  try {
+    const params: any = { pageNo: 1, pageSize: 1000 };
+    const result = await getSlotInfoPage(params);
+    const nameSeen = new Set<string>();
+    const codeSeen = new Set<string>();
+    const nameOpts: { label: string; value: string }[] = [];
+    const codeOpts: { label: string; value: string }[] = [];
+    (result.list || []).forEach((item: DspSlotInfoApi.SlotInfo) => {
+      if (item.name && !nameSeen.has(item.name)) {
+        nameSeen.add(item.name);
+        nameOpts.push({ label: item.name, value: item.name });
+      }
+      if (item.dspSlotCode && !codeSeen.has(item.dspSlotCode)) {
+        codeSeen.add(item.dspSlotCode);
+        codeOpts.push({ label: item.dspSlotCode, value: item.dspSlotCode });
+      }
+    });
+    bindNameOptions.value = nameOpts;
+    bindDspSlotCodeOptions.value = codeOpts;
+  } catch {
+    console.error('加载预算位下拉选项失败');
   }
 }
 
@@ -573,24 +603,30 @@ const bindTableColumns = computed(() => [
     dataIndex: 'id',
     key: 'id',
     width: 80,
+    align: 'center',
   },
   {
     title: '预算位名称',
     dataIndex: 'name',
     key: 'name',
     width: 200,
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
   },
   {
     title: '预算广告位ID',
     dataIndex: 'dspSlotCode',
     key: 'dspSlotCode',
     width: 180,
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
   },
   {
     title: '操作系统',
     dataIndex: 'osType',
     key: 'osType',
     width: 100,
+    align: 'center',
     customRender: ({ value }: { value: number }) => getDictLabel(osTypeOptions, value),
   },
   {
@@ -598,6 +634,7 @@ const bindTableColumns = computed(() => [
     dataIndex: 'adScene',
     key: 'adScene',
     width: 100,
+    align: 'center',
     customRender: ({ value }: { value: number }) => getDictLabel(adSceneOptions, value),
   },
   {
@@ -605,6 +642,7 @@ const bindTableColumns = computed(() => [
     dataIndex: 'dspPayType',
     key: 'dspPayType',
     width: 100,
+    align: 'center',
     customRender: ({ value }: { value: number }) => getDictLabel(payTypeOptions, value),
   },
   {
@@ -616,7 +654,14 @@ const bindTableColumns = computed(() => [
       const bound = isBudgetBound(record.id);
       return bound
         ? h('span', { class: 'text-red-500' }, '已绑定')
-        : h('span', { class: 'text-green-500' }, '未绑定');
+        : h(
+            'a',
+            {
+              class: 'text-green-500',
+              onClick: () => handleBindSingle(record.id, record),
+            },
+            '未绑定',
+          );
     },
   },
 ]);
@@ -844,9 +889,9 @@ onMounted(() => {
                     <div class="p-4 space-y-4 flex-1 min-w-0">
                       <!-- 预算信息标题行 -->
                       <div class="flex items-center gap-4 mb-2 pb-2 pt-2 pl-4 pr-4 border-b border-gray-200 bg-gray-800 -mx-4 mt-0">
-                        <span class="font-medium text-white">预算广告位名称：{{ budget.name }}({{ budget.dspSlotId }})</span>
+                        <span class="font-medium text-white">预算位名称：{{ budget.name }}({{ budget.dspSlotId }})</span>
                         <span class="text-gray-400">|</span>
-                        <span class="text-gray-300">广告位ID: {{ budget.dspSlotCode || budget.dspSlotId }}</span>
+                        <span class="text-gray-300">预算广告位ID: {{ budget.dspSlotCode || budget.dspSlotId }}</span>
                         <span class="text-gray-400">|</span>
                         <span class="text-gray-300">操作系统: {{ getDictLabel(osTypeOptions, budget.osType) }}</span>
                         <span class="text-gray-400">|</span>
@@ -1011,24 +1056,8 @@ onMounted(() => {
       :footer="null"
     >
       <!-- 搜索区域：一行四列 -->
-      <div class="mb-4 flex gap-3">
-        <!-- 预算广告位名称 -->
-        <a-input
-          v-model:value="bindSearchName"
-          placeholder="预算位名称"
-          class="flex-1"
-          allow-clear
-          @pressEnter="loadBindBudgetList"
-        />
-        <!-- 预算广告位编码 -->
-        <a-input
-          v-model:value="bindSearchDspSlotCode"
-          placeholder="预算广告位ID"
-          class="flex-1"
-          allow-clear
-          @pressEnter="loadBindBudgetList"
-        />
-        <!-- 公司下拉框 -->
+      <div class="mb-4 flex justify-center gap-3">
+ <!-- 公司下拉框 -->
         <a-select
           v-model:value="bindSearchCompanyId"
           placeholder="公司"
@@ -1052,6 +1081,29 @@ onMounted(() => {
           @search="(value: string) => loadProductOptions(value)"
           @change="loadBindBudgetList"
         />
+
+
+        <!-- 预算广告位名称 -->
+        <a-select
+          v-model:value="bindSearchName"
+          placeholder="预算位名称"
+          class="flex-1"
+          show-search
+          :options="bindNameOptions"
+          allow-clear
+          @change="loadBindBudgetList"
+        />
+        <!-- 预算广告位编码 -->
+        <a-select
+          v-model:value="bindSearchDspSlotCode"
+          placeholder="预算方广告位ID"
+          class="flex-1"
+          show-search
+          :options="bindDspSlotCodeOptions"
+          allow-clear
+          @change="loadBindBudgetList"
+        />
+       
         <!-- 搜索按钮 -->
         <a-button type="primary" @click="loadBindBudgetList">搜索</a-button>
         <!-- 重置按钮 -->

@@ -275,12 +275,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体简称/ID',
+      label: '媒体简称',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getMediaOptions,
-        placeholder: '请选择媒体简称/ID',
+        placeholder: '请选择媒体简称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -291,24 +291,24 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'osType',
-      label: '应用平台',
+      label: '操作系统',
       component: 'Select',
       componentProps: {
         allowClear: true,
         options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
-        placeholder: '请选择应用平台',
+        placeholder: '请选择操作系统',
       },
     },
     {
       fieldName: 'appId',
-      label: '应用名称/ID',
+      label: '应用名称',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
         allowClear: true,
         api: getAppOptions,
         dependencies: ['mediaId'],
-        placeholder: '请选择应用名称/ID',
+        placeholder: '请选择应用名称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -382,16 +382,23 @@ export function useGridFormSchema(): VbenFormSchema[] {
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotDay>['columns'] {
-  return [
+  const columns: VxeTableGridOptions<DataSspSlotDayApi.SspSlotDay>['columns'] = [
+    {
+      type: 'seq',
+      title: '#',
+      width: 30,
+      align: 'center',
+      headerAlign: 'center',
+    },
     {
       type: 'expand',
-      width: 48,
+      width: 24,
       slots: { content: 'expand_content' },
     },
     {
       field: 'date',
       title: '日期',
-      minWidth: 110,
+      minWidth: 90,
       align: 'left',
       sortable: true,
       formatter: ({ cellValue }) => {
@@ -403,6 +410,12 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
         }
         return str;
       },
+    },
+    {
+      field: 'mediaName',
+      title: '媒体简称',
+      minWidth: 120,
+      align: 'left',
     },
     // {
     //   field: 'mediaName',
@@ -580,4 +593,9 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       slots: { default: 'income-slot' },
     },
   ];
+  columns.forEach((col: any) => {
+    col.align = 'center';
+    col.headerAlign = 'center';
+  });
+  return columns;
 }

@@ -8,7 +8,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { getMediaSimpleList } from '#/api/ssp/media';
-import { getAppPage } from '#/api/ssp/app';
+import { getAppPage, getApp } from '#/api/ssp/app';
 import { getSlotInfoPage } from '#/api/ssp/sspSlotInfo';
 
 async function getMediaOptions() {
@@ -41,6 +41,20 @@ async function getSlotNameOptions() {
   const options: { label: string; value: string }[] = [];
   (res.list || []).forEach((slot: SspSlotInfoApi.SlotInfo) => {
     const name = slot.name;
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      options.push({ label: name, value: name });
+    }
+  });
+  return options;
+}
+
+async function getNameAliseOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  (res.list || []).forEach((slot: SspSlotInfoApi.SlotInfo) => {
+    const name = slot.nameAlise;
     if (name && !seen.has(name)) {
       seen.add(name);
       options.push({ label: name, value: name });
@@ -82,12 +96,50 @@ export function useFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'adScene',
+      label: '广告场景',
+      rules: 'required',
+      component: 'Select',
+      componentProps: {
+        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
+        placeholder: '请选择广告场景',
+      },
+    },
+    {
       fieldName: 'name',
       label: '广告位名称',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入广告位名称',
+        disabled: true,
+        placeholder: '自动拼接生成',
+      },
+      dependencies: {
+        triggerFields: ['mediaId', 'appId', 'adScene'],
+        async trigger(values: any, _formApi: any, controller: any) {
+          if (values.id || !values.mediaId || !values.appId || values.adScene === undefined) return;
+          const mediaList = await getMediaSimpleList();
+          const media = mediaList.find((m: any) => m.id === values.mediaId);
+          const mediaLabel = media?.mediaCompanyShort || media?.name || '';
+          let appLabel = '';
+          let osTypeLabel = '';
+          try {
+            const app = await getApp(values.appId);
+            appLabel = app.name || '';
+            const osOpts = getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number');
+            const osItem = osOpts.find((o: any) => o.value === app.osType);
+            osTypeLabel = osItem?.label || '';
+          } catch { /* ignore */ }
+          const adOpts = getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number');
+          const adItem = adOpts.find((o: any) => o.value === values.adScene);
+          const adSceneLabel = adItem?.label || '';
+          const newName = [mediaLabel, appLabel, osTypeLabel, adSceneLabel]
+            .filter(Boolean)
+            .join('-');
+          if (newName) {
+            controller.setFieldValue('name', newName);
+          }
+        },
       },
     },
     {
@@ -100,16 +152,6 @@ export function useFormSchema(): VbenFormSchema[] {
       },
       componentProps: {
         placeholder: '请输入内部广告位名称',
-      },
-    },
-    {
-      fieldName: 'adScene',
-      label: '广告场景',
-      rules: 'required',
-      component: 'Select',
-      componentProps: {
-        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
-        placeholder: '请选择广告场景',
       },
     },
     // {
@@ -177,15 +219,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'id',
-      label: '媒体广告位ID',
-      component: 'Input',
-      componentProps: {
-        allowClear: true,
-        placeholder: '多个用空格分隔',
-      },
-    },
-    {
       fieldName: 'mediaId',
       label: '媒体名称',
       component: 'ApiSelect',
@@ -214,6 +247,23 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'id',
+      label: '媒体广告位ID',
+      component: 'ApiSelect',
+      componentProps: {
+        mode: 'multiple',
+        allowClear: true,
+        api: getSlotInfoOptions,
+        placeholder: '请选择媒体广告位',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
+      },
+    },
+    {
       fieldName: 'name',
       label: '广告位名称',
       component: 'ApiSelect',
@@ -233,10 +283,28 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'nameAlise',
       label: '内部广告位名称',
-      component: 'Input',
+      component: 'ApiSelect',
+      componentProps: {
+        mode: 'multiple',
+        allowClear: true,
+        api: getNameAliseOptions,
+        placeholder: '请选择内部广告位名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
+      },
+    },
+    {
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
       componentProps: {
         allowClear: true,
-        placeholder: '多个用空格分隔',
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
       },
     },
     {
@@ -286,13 +354,15 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
       field: 'name',
       title: '广告位名称',
       minWidth: 240,
-      align: 'center',
+      align: 'left',
+      headerAlign: 'center',
     },
     {
       field: 'nameAlise',
       title: '内部广告位名称',
       minWidth: 240,
-      align: 'center',
+      align: 'left',
+      headerAlign: 'center',
     },
     {
       field: 'mediaName',
@@ -344,7 +414,7 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
     },
     {
       field: 'ls',
-      title: '预算绑定',
+      title: '关联预算位',
       minWidth: 120,
       align: 'center',
     },
