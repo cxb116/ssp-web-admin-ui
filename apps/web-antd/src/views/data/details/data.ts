@@ -356,7 +356,11 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     {
       field: 'date',
       title: '时间',
+<<<<<<< HEAD
       minWidth: 100,
+=======
+      minWidth: 90,
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';

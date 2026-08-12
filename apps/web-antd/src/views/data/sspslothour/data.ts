@@ -84,6 +84,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
         allowClear: true,
         options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
         placeholder: '请选择操作系统',
+<<<<<<< HEAD
       },
     },
     {
@@ -94,6 +95,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
         allowClear: true,
         options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
         placeholder: '请选择广告场景',
+=======
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       },
     },
     {
@@ -223,13 +226,21 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlot
     },
     {
       type: 'expand',
+<<<<<<< HEAD
       width: 30,
+=======
+      width: 24,
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       slots: { content: 'expand_content' },
     },
     {
       field: 'date',
       title: '时间',
+<<<<<<< HEAD
       minWidth: 70,
+=======
+      minWidth: 60,
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       align: 'left',
       sortable: true,
       formatter: ({ cellValue }) => {

@@ -337,7 +337,12 @@ const bindTableColumns = [
     dataIndex: 'name',
     key: 'name',
     width: 250,
+<<<<<<< HEAD
     align: 'center',
+=======
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
     customRender: ({ text, record }: { text: string; record: SspSlotInfoApi.SlotInfo }) => {
       return `${text || '-'}（ID: ${record.id}）`;
     },
@@ -347,7 +352,12 @@ const bindTableColumns = [
     dataIndex: 'nameAlise',
     key: 'nameAlise',
     width: 200,
+<<<<<<< HEAD
     align: 'center',
+=======
+    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
+    customCell: () => ({ style: { textAlign: 'left' } }),
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
   },
   {
     title: '操作系统',

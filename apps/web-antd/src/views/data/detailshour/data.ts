@@ -189,7 +189,11 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
     {
       field: 'date',
       title: '时间',
+<<<<<<< HEAD
       minWidth: 70,
+=======
+      minWidth: 130,
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';

@@ -273,6 +273,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           size="small"
           align="center"
         >
+<<<<<<< HEAD
           <VxeColumn title="时间" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
             if (!cellValue) return '';
             const str = String(cellValue);
@@ -280,6 +281,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
             if (str.length === 4 && /^\d{4}$/.test(str)) return str.slice(0, 2) + ':00';
             return str;
           }" />
+=======
+          <VxeColumn title="时间" field="date" width="120" />
+>>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
           <VxeColumn title="媒体简称" field="sspName" width="150" />
           <VxeColumn title="应用名称" field="appName" width="120" />
           <VxeColumn title="操作系统" width="100">
