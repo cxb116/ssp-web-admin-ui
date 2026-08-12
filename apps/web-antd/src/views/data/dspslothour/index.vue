@@ -7,13 +7,12 @@ import { reactive } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { downloadFileFromBlobPart } from '@vben/utils';
+import { buildSortingField } from '@vben/request';
 
 import { message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
 import {
-  exportDspSlotHour,
   getDspSlotHourPage,
   getSSPDspSlotHour,
 } from '#/api/data/dspslothour';
@@ -64,10 +63,14 @@ const initialFormValues = getInitialFormValues();
 
 const detailMap = reactive<Record<number, DataSspSlotHourApi.SspSlotHour[]>>({});
 
+/** 记录当前展开的主表行 ID */
+const expandedRowIds = reactive(new Set<number>());
+
 function clearDetailMap() {
   for (const id of Object.keys(detailMap)) {
     delete detailMap[Number(id)];
   }
+  expandedRowIds.clear();
 }
 
 function handleRefresh() {
@@ -84,6 +87,11 @@ async function handleExpandChange(
   row: DataDspSlotHourApi.DspSlotHour,
   expanded: boolean,
 ) {
+  if (expanded) {
+    expandedRowIds.add(row.id!);
+  } else {
+    expandedRowIds.delete(row.id!);
+  }
   if (!expanded) {
     return;
   }
@@ -145,14 +153,6 @@ function handleSspSlotIdClick(row: any) {
   }
 }
 
-async function handleExport() {
-  const data = await exportDspSlotHour(await gridApi.formApi.getValues());
-  downloadFileFromBlobPart({
-    fileName: 'DSP预算广告位小时报.xls',
-    source: data,
-  });
-}
-
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
@@ -170,14 +170,20 @@ const [Grid, gridApi] = useVbenVxeGrid({
     pagerConfig: {
       pageSize: 10,
     },
+    sortConfig: {
+      remote: true,
+      multiple: false,
+    },
     proxyConfig: {
+      sort: true,
       ajax: {
         // 小时报表主表：getDspSlotHourPage
-        query: async ({ page }, formValues) => {
+        query: async ({ page, sorts }, formValues) => {
           clearDetailMap();
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
+            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
             if (key === 'date' || key === 'sspSlotId') continue;
@@ -210,6 +216,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
     rowConfig: {
       keyField: 'id',
       isHover: true,
+    },
+    rowClassName({ row }: { row: DataDspSlotHourApi.DspSlotHour }) {
+      return expandedRowIds.has(row.id!) ? 'expanded-row' : '';
     },
     toolbarConfig: {
       refresh: true,
@@ -264,8 +273,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
           size="small"
           align="center"
         >
-          <VxeColumn title="时间" field="date" width="120" />
-          <VxeColumn title="媒体名称" field="sspName" width="150" />
+          <VxeColumn title="时间" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
+            if (!cellValue) return '';
+            const str = String(cellValue);
+            if (str.length >= 10) return str.slice(-2) + ':00';
+            if (str.length === 4 && /^\d{4}$/.test(str)) return str.slice(0, 2) + ':00';
+            return str;
+          }" />
+          <VxeColumn title="媒体简称" field="sspName" width="150" />
           <VxeColumn title="应用名称" field="appName" width="120" />
           <VxeColumn title="操作系统" width="100">
             <template #default="{ row }">
@@ -292,8 +307,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
         </VxeTable>
       </template>
       <template #toolbar-tools>
-        <a-button type="primary" @click="handleExport"> 导出 </a-button>
+        <a-button type="primary" disabled> 导出 </a-button>
       </template>
     </Grid>
   </Page>
 </template>
+
+<style>
+.expanded-row {
+  background-color: #E3E6E8 !important;
+}
+</style>

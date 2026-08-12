@@ -5,6 +5,24 @@ import type { DspCompanyApi } from '#/api/dsp/company';
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
+import { getCompanyPage } from '#/api/dsp/company';
+
+/** 搜索表单用：加载所有公司作为下拉选项 */
+async function getCompanyNameOptions() {
+  const res = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
+  // 去重，value 用 name 字符串，便于后端按名称模糊匹配
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  (res.list || []).forEach((c: DspCompanyApi.Company) => {
+    const name = c.name || '';
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      options.push({ label: `${name}(${c.id})`, value: name });
+    }
+  });
+  return options;
+}
+
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -73,10 +91,17 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'name',
       label: '预算公司名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入预算公司名称',
+        api: getCompanyNameOptions,
+        placeholder: '请选择预算公司名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
@@ -95,6 +120,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspCompanyApi.Company>['columns'] {
   return [
+    { type: 'seq', title: '#', width: 60, align: 'center', headerAlign: 'center' },
     {
       field: 'id',
       title: '预算公司ID',

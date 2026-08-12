@@ -3,13 +3,14 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
 import type { DataSspSlotDayApi } from '#/api/data/sspslotday';
 
-import { reactive } from 'vue';
+import { onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 import { buildSortingField } from '@vben/request';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
+import dayjs from 'dayjs';
 import { message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
@@ -17,6 +18,7 @@ import { getSlotInfoPageSsp } from '#/api/data/dspslotday';
 import {
   exportSspSlotDay,
   getSspSlotDayPage,
+  getSspSlotDaySum,
 } from '#/api/data/sspslotday';
 
 import { useGridColumns, useGridFormSchema } from './data';
@@ -66,6 +68,23 @@ const initialFormValues = getInitialFormValues();
 
 const detailMap = reactive<Record<number, DataDspSlotDayApi.DspSlotDay[]>>({});
 
+/** 记录当前展开的主表行 ID */
+const expandedRowIds = reactive(new Set<number>());
+
+/** 今日总和数据 */
+const todaySum = ref<DataSspSlotDayApi.SspSlotDay | null>(null);
+
+/** 请求后台获取今日总和 */
+async function fetchTodaySum() {
+  const today = Number(dayjs().format('YYYYMMDD'));
+  try {
+    todaySum.value = await getSspSlotDaySum(today);
+  } catch {
+    todaySum.value = null;
+  }
+  gridApi.grid?.updateFooter();
+}
+
 function clearDetailMap() {
   for (const id of Object.keys(detailMap)) {
     delete detailMap[Number(id)];
@@ -74,6 +93,7 @@ function clearDetailMap() {
 
 function handleRefresh() {
   clearDetailMap();
+  expandedRowIds.clear();
   gridApi.query();
 }
 
@@ -83,6 +103,11 @@ function getExpandedDetails(row: DataSspSlotDayApi.SspSlotDay) {
 
 /** 点击主表展开，加载预算广告位日报子表 */
 async function handleExpandChange(row: DataSspSlotDayApi.SspSlotDay, expanded: boolean) {
+  if (expanded) {
+    expandedRowIds.add(row.id!);
+  } else {
+    expandedRowIds.delete(row.id!);
+  }
   if (!expanded) {
     return;
   }
@@ -207,9 +232,31 @@ const [Grid, gridApi] = useVbenVxeGrid({
       keyField: 'id',
       isHover: true,
     },
+    rowClassName({ row }: { row: DataSspSlotDayApi.SspSlotDay }) {
+      return expandedRowIds.has(row.id!) ? 'expanded-row' : '';
+    },
     toolbarConfig: {
       refresh: true,
       search: true,
+    },
+    showFooter: true,
+    footerConfig: {},
+    footerMethod({ columns }: { columns: any[]; data: any[] }) {
+      const sums: any[] = [];
+      const sum = todaySum.value;
+      columns.forEach((col, colIndex) => {
+        const field = col.field;
+        if (field === 'sspName') {
+          sums[colIndex] = '今日总和';
+          return;
+        }
+        if (!field || !['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'spend', 'income'].includes(field)) {
+          sums[colIndex] = '';
+          return;
+        }
+        sums[colIndex] = sum ? (sum as any)[field] ?? 0 : 0;
+      });
+      return [sums];
     },
   } as VxeTableGridOptions<DataSspSlotDayApi.SspSlotDay>,
   gridEvents: {
@@ -223,6 +270,10 @@ const [Grid, gridApi] = useVbenVxeGrid({
       handleExpandChange(row, expanded);
     },
   },
+});
+
+onMounted(() => {
+  fetchTodaySum();
 });
 </script>
 
@@ -266,7 +317,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
           size="small"
           align="center"
         >
-          <VxeColumn title="日期" field="date" width="120" />
+          <VxeColumn title="日期" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
+            if (!cellValue) return '';
+            const str = String(cellValue);
+            if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+            if (str.length === 8 && /^\d{8}$/.test(str)) return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
+            return str;
+          }" />
           <VxeColumn title="公司名称" field="companyName" width="120" />
           <VxeColumn title="产品名称" field="productName" width="150" />
           <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
@@ -295,3 +352,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
     </Grid>
   </Page>
 </template>
+
+<style>
+.expanded-row {
+  background-color: #E3E6E8 !important;
+}
+</style>

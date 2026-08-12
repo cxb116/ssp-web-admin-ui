@@ -61,6 +61,16 @@ const routes: RouteRecordRaw[] = [
       hideInMenu: true,
     },
   },
+  {
+    path: '/data/details-hour',
+    component: () => import('#/views/data/detailshour/index.vue'),
+    name: 'DataDetailsHour',
+    meta: {
+      title: '明细小时报表',
+      icon: 'ant-design:field-time-outlined',
+      hideInMenu: true,
+    },
+  },
 ];
 
 export default routes;

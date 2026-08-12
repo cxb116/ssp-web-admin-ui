@@ -95,3 +95,17 @@ export function deleteDspSlotDayList(ids: number[]) {
 export function exportDspSlotDay(params: any) {
   return requestClient.download('/data/dsp-slot-day/export-excel', { params });
 }
+
+
+/** 导出预算广告位详情 */
+export function exportDspSlotDayDetail(params: any) {
+  return requestClient.download('/data/dsp-slot-day/export-excel-detail', { params });
+}
+
+/** 获取今日总和 */
+export function getDspSlotDaySum(date: number) {
+  return requestClient.get<DataDspSlotDayApi.DspSlotDay>(
+    '/data/dsp-slot-day/sum',
+    { params: { date } },
+  );
+}

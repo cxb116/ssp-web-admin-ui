@@ -55,6 +55,14 @@ async function getSlotNameOptions() {
   return options;
 }
 
+async function getSlotIdOptions() {
+  const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
+  return (res.list || []).map((slot: DspSlotInfoApi.SlotInfo) => ({
+    label: `${slot.name || ''}(${slot.id})`,
+    value: slot.id,
+  }));
+}
+
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
   return [
@@ -68,11 +76,11 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
+      label: '预算方广告位ID',
       rules: 'required',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算广告位ID',
+        placeholder: '请输入预算方广告位ID',
       },
     },
     {
@@ -119,15 +127,6 @@ export function useFormSchema(): VbenFormSchema[] {
       }),
     },
     {
-      fieldName: 'name',
-      label: '广告位名称',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入广告位名称',
-      },
-    },
-    {
       fieldName: 'osType',
       label: '操作系统',
       rules: 'required',
@@ -146,6 +145,46 @@ export function useFormSchema(): VbenFormSchema[] {
       componentProps: {
         options: getDictOptions(DICT_TYPE.SSP_PAY_TYPE, 'number'),
         placeholder: '请选择结算方式',
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '预算位名称',
+      rules: 'required',
+      component: 'Input',
+      componentProps: {
+        disabled: true,
+        placeholder: '自动拼接生成',
+      },
+      dependencies: {
+        triggerFields: ['companyId', 'productId', 'adScene'],
+        async trigger(values: any, formApi: any) {
+          if (values.id || !values.companyId || !values.productId || values.adScene === undefined) return;
+          let companyLabel = '';
+          try {
+            const companies = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
+            const company = (companies.list || []).find((c: any) => c.id === values.companyId);
+            companyLabel = company?.name || '';
+          } catch { /* ignore */ }
+          let productLabel = '';
+          let osTypeLabel = '';
+          try {
+            const product = await getProduct(values.productId);
+            productLabel = product.name || '';
+            const osOpts = getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number');
+            const osItem = osOpts.find((o: any) => o.value === product.osType);
+            osTypeLabel = osItem?.label || '';
+          } catch { /* ignore */ }
+          const adOpts = getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number');
+          const adItem = adOpts.find((o: any) => o.value === values.adScene);
+          const adSceneLabel = adItem?.label || '';
+          const newName = [companyLabel, productLabel, osTypeLabel, adSceneLabel]
+            .filter(Boolean)
+            .join('-');
+          if (newName) {
+            formApi.setFieldValue('name', newName);
+          }
+        },
       },
     },
     {
@@ -230,12 +269,15 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
-      component: 'Input',
+      fieldName: 'companyId',
+      label: '公司名称',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入预算广告位ID',
+        api: getCompanyOptions,
+        placeholder: '请选择公司名称',
+        showSearch: true,
+        filterOption: false,
       },
     },
     {
@@ -252,26 +294,40 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'companyId',
-      label: '公司名称',
-      component: 'ApiSelect',
+      fieldName: 'dspSlotCode',
+      label: '预算方广告位ID',
+      component: 'Input',
       componentProps: {
         allowClear: true,
-        api: getCompanyOptions,
-        placeholder: '请选择公司名称',
+        placeholder: '请输入预算方广告位ID',
+      },
+    },
+    {
+      fieldName: 'id',
+      label: '预算位ID',
+      component: 'ApiSelect',
+      componentProps: {
+        mode: 'multiple',
+        allowClear: true,
+        api: getSlotIdOptions,
+        placeholder: '请选择预算位ID',
         showSearch: true,
-        filterOption: false,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
       fieldName: 'name',
-      label: '广告位名称',
+      label: '预算位名称',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
         allowClear: true,
         api: getSlotNameOptions,
-        placeholder: '请选择广告位名称',
+        placeholder: '请选择预算位名称',
         showSearch: true,
         filterOption: false,
       },
@@ -312,6 +368,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['columns'] {
   return [
+    { type: 'seq', title: '#', width: 60, align: 'center', headerAlign: 'center' },
     {
       field: 'id',
       title: '预算位ID',
@@ -320,15 +377,16 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
     },
     {
       field: 'name',
-      title: '预算名称',
+      title: '预算位名称',
       minWidth: 190,
       align: 'center',
     },
     {
       field: 'dspSlotCode',
-      title: '预算广告位ID',
+      title: '预算方广告位ID',
       minWidth: 230,
       align: 'center',
+      headerAlign: 'center',
     },
     {
       field: 'productName',

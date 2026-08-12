@@ -62,12 +62,12 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体简称/ID',
+      label: '媒体简称',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getMediaOptions,
-        placeholder: '请选择媒体简称/ID',
+        placeholder: '请选择媒体简称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -78,24 +78,34 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'osType',
-      label: '应用平台',
+      label: '操作系统',
       component: 'Select',
       componentProps: {
         allowClear: true,
         options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
-        placeholder: '请选择应用平台',
+        placeholder: '请选择操作系统',
+      },
+    },
+    {
+      fieldName: 'adScene',
+      label: '广告场景',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
+        placeholder: '请选择广告场景',
       },
     },
     {
       fieldName: 'appId',
-      label: '应用名称/ID',
+      label: '应用名称',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
         allowClear: true,
         api: getAppOptions,
         dependencies: ['mediaId'],
-        placeholder: '请选择应用名称/ID',
+        placeholder: '请选择应用名称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -203,17 +213,25 @@ export function useGridFormSchema(): VbenFormSchema[] {
 
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlotHour>['columns'] {
-  return [
+  const columns: VxeTableGridOptions<DataSspSlotHourApi.SspSlotHour>['columns'] = [
+    {
+      type: 'seq',
+      title: '#',
+      width: 30,
+      align: 'center',
+      headerAlign: 'center',
+    },
     {
       type: 'expand',
-      width: 48,
+      width: 30,
       slots: { content: 'expand_content' },
     },
     {
       field: 'date',
       title: '时间',
-      minWidth: 110,
+      minWidth: 70,
       align: 'left',
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -227,6 +245,12 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlot
         }
         return str;
       },
+    },
+    {
+      field: 'mediaName',
+      title: '媒体简称',
+      minWidth: 120,
+      align: 'left',
     },
     // {
     //   field: 'mediaName',
@@ -278,26 +302,31 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlot
       field: 'reqPv',
       title: '请求PV',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'discard',
       title: '丢弃请求',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'retPv',
       title: '返回PV',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'showPv',
       title: '展示PV',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'clickPv',
       title: '点击PV',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'fillRate',
@@ -330,31 +359,37 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlot
       field: 'discountClickPv',
       title: '折后点击',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'discountShowPv',
       title: '折后展示',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'dplsuccPv',
       title: '调起成功',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'completePv',
       title: '完成量',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'installPv',
       title: '安装量',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'activatePv',
       title: '激活量',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'mediaEcpm',
@@ -380,13 +415,20 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotHourApi.SspSlot
       field: 'spend',
       title: '成本(元)',
       minWidth: 120,
+      sortable: true,
       slots: { default: 'spend-slot' },
     },
     {
       field: 'income',
       title: '收入(元)',
       minWidth: 120,
+      sortable: true,
       slots: { default: 'income-slot' },
     },
   ];
+  columns.forEach((col: any) => {
+    col.align = 'center';
+    col.headerAlign = 'center';
+  });
+  return columns;
 }

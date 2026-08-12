@@ -15,6 +15,8 @@ import { getProduct, getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
 import { getLaunchDspSlotIdQuery, getLaunchSspSlotList, createLaunch, updateLaunch, deleteLaunch } from '#/api/dsp/launch';
 import { getSlotInfoPage as getSspSlotInfoPage } from '#/api/ssp/sspSlotInfo';
+import { getMediaSimpleList } from '#/api/ssp/media';
+import { getAppPage } from '#/api/ssp/app';
 import type { SspSlotInfoApi } from '#/api/ssp/sspSlotInfo';
 
 const route = useRoute();
@@ -76,6 +78,16 @@ const bindModalVisible = ref(false);
 const bindLoading = ref(false);
 const bindSlotList = ref<SspSlotInfoApi.SlotInfo[]>([]);
 const bindSearchName = ref('');
+// 新增检索字段
+const bindSearchMediaId = ref<number | undefined>();
+const bindSearchAppId = ref<number | undefined>();
+const bindSearchSlotName = ref('');
+const bindSearchSlotId = ref('');
+// 下拉选项
+const bindMediaOptions = ref<{ label: string; value: number }[]>([]);
+const bindAppOptions = ref<{ label: string; value: number }[]>([]);
+const bindSlotNameOptions = ref<{ label: string; value: string }[]>([]);
+const bindSlotIdOptions = ref<{ label: string; value: number }[]>([]);
 
 function getDictLabel(options: any[], value: number | undefined) {
   if (value === undefined || value === null) return '-';
@@ -137,7 +149,54 @@ async function loadSspSlotBindings() {
 async function handleBindSspSlot() {
   bindModalVisible.value = true;
   bindSearchName.value = '';
+  bindSearchMediaId.value = undefined;
+  bindSearchAppId.value = undefined;
+  bindSearchSlotName.value = '';
+  bindSearchSlotId.value = '';
+  await loadBindSearchOptions();
   await loadBindSlotList();
+}
+
+async function loadBindSearchOptions() {
+  try {
+    const [mediaList, appRes, slotRes] = await Promise.all([
+      getMediaSimpleList(),
+      getAppPage({ pageNo: 1, pageSize: 1000 }),
+      getSspSlotInfoPage({ pageNo: 1, pageSize: 1000 }),
+    ]);
+    // 媒体简称
+    bindMediaOptions.value = (mediaList || []).map((m: any) => ({
+      label: `${m.mediaCompanyShort || m.name}(${m.id})`,
+      value: m.id,
+    }));
+    // 应用名称
+    bindAppOptions.value = ((appRes as any).list || []).map((a: any) => ({
+      label: `${a.name || ''}(${a.id})`,
+      value: a.id,
+    }));
+    // 媒体广告位名称（去重）
+    const nameSeen = new Set<string>();
+    bindSlotNameOptions.value = [];
+    (slotRes.list || []).forEach((s: SspSlotInfoApi.SlotInfo) => {
+      if (s.name && !nameSeen.has(s.name)) {
+        nameSeen.add(s.name);
+        bindSlotNameOptions.value.push({ label: s.name, value: s.name });
+      }
+    });
+    // 媒体广告位ID
+    bindSlotIdOptions.value = (slotRes.list || []).map((s: SspSlotInfoApi.SlotInfo) => ({
+      label: `${s.name || ''}(${s.id})`,
+      value: s.id,
+    }));
+  } catch { /* ignore */ }
+}
+
+function handleBindSearchReset() {
+  bindSearchMediaId.value = undefined;
+  bindSearchAppId.value = undefined;
+  bindSearchSlotName.value = '';
+  bindSearchSlotId.value = '';
+  loadBindSlotList();
 }
 
 async function loadBindSlotList() {
@@ -147,8 +206,17 @@ async function loadBindSlotList() {
       pageNo: 1,
       pageSize: 1000,
     };
-    if (bindSearchName.value) {
-      params.name = bindSearchName.value;
+    if (bindSearchMediaId.value) {
+      params.mediaId = bindSearchMediaId.value;
+    }
+    if (bindSearchAppId.value) {
+      params.appId = bindSearchAppId.value;
+    }
+    if (bindSearchSlotName.value) {
+      params.name = bindSearchSlotName.value;
+    }
+    if (bindSearchSlotId.value) {
+      params.id = bindSearchSlotId.value;
     }
     const result = await getSspSlotInfoPage(params);
     bindSlotList.value = result.list || [];
@@ -262,12 +330,14 @@ const bindTableColumns = [
     dataIndex: 'id',
     key: 'id',
     width: 80,
+    align: 'center',
   },
   {
     title: '媒体广告位名称',
     dataIndex: 'name',
     key: 'name',
     width: 250,
+    align: 'center',
     customRender: ({ text, record }: { text: string; record: SspSlotInfoApi.SlotInfo }) => {
       return `${text || '-'}（ID: ${record.id}）`;
     },
@@ -277,6 +347,7 @@ const bindTableColumns = [
     dataIndex: 'nameAlise',
     key: 'nameAlise',
     width: 200,
+    align: 'center',
   },
   {
     title: '操作系统',
@@ -354,6 +425,28 @@ onMounted(async () => {
         }
       }
       await loadSspSlotBindings();
+    } else {
+      // 复制场景：从路由 query.copyFrom 读取源数据 id
+      const copyFrom = route.query.copyFrom;
+      if (copyFrom) {
+        const sourceId = Number(copyFrom);
+        const res = await getSlotInfo(sourceId);
+        // 复制时排除预算方APPSECRET、预算方APPID、预算广告位ID
+        const { dspAppSecret, dspAppId, dspSlotCode, id: _id, ...rest } = res;
+        void dspAppSecret; void dspAppId; void dspSlotCode; void _id;
+        slotInfo.value = rest;
+        if (rest?.companyId) {
+          try {
+            const productRes = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: rest.companyId });
+            productOptions.value = (productRes.list || []).map((p: any) => ({
+              label: `${p.name || ''}(${p.id})`,
+              value: p.id,
+            }));
+          } catch {
+            // ignore
+          }
+        }
+      }
     }
   } finally {
     loading.value = false;
@@ -371,6 +464,33 @@ watch(
   },
   { immediate: true },
 );
+
+// 自动生成预算位名称
+async function generateBudgetName() {
+  const vals = formApi.form?.values;
+  if (!vals || vals.id || !vals.companyId || !vals.productId || vals.adScene === undefined) return;
+  let companyLabel = '';
+  const company = companyOptions.value.find((c: any) => c.value === vals.companyId);
+  companyLabel = company?.label?.replace(/\(.*\)$/, '') || '';
+  let productLabel = '';
+  let osTypeLabel = '';
+  try {
+    const product = await getProduct(vals.productId);
+    productLabel = product.name || '';
+    const osOpts = getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number');
+    const osItem = osOpts.find((o: any) => o.value === product.osType);
+    osTypeLabel = osItem?.label || '';
+  } catch { /* ignore */ }
+  const adOpts = getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number');
+  const adItem = adOpts.find((o: any) => o.value === vals.adScene);
+  const adSceneLabel = adItem?.label || '';
+  const newName = [companyLabel, productLabel, osTypeLabel, adSceneLabel]
+    .filter(Boolean)
+    .join('-');
+  if (newName) {
+    formApi.setFieldValue('name', newName);
+  }
+}
 
 const [BaseForm, formApi] = useVbenForm({
   commonConfig: {
@@ -428,6 +548,7 @@ const [BaseForm, formApi] = useVbenForm({
           if (product?.osType !== undefined) {
             formApi.setFieldValue('osType', product.osType);
           }
+          generateBudgetName();
         } catch {
           // ignore
         }
@@ -435,27 +556,37 @@ const [BaseForm, formApi] = useVbenForm({
     }),
   },
   
-{
-    fieldName: 'name',
-    label: '预算位名称',
-    component: 'Input',
-  },
+
 {
     fieldName: 'osType',
     label: '操作系统',
     component: 'Select',
     componentProps: {
       options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+      disabled: true,
     },
   },
 {
     fieldName: 'adScene',
     label: '广告场景',
     component: 'Select',
-    componentProps: {
+    componentProps: () => ({
       options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
-    },
+      onChange: () => {
+        generateBudgetName();
+      },
+    }),
   },
+{
+    fieldName: 'name',
+    label: '预算位名称',
+    component: 'Input',
+    componentProps: () => ({
+      disabled: !id.value,
+      placeholder: id.value ? '' : '自动拼接生成',
+    }),
+  },
+
 {
     fieldName: 'dspPayType',
     label: '结算方式',
@@ -736,26 +867,56 @@ function handleBack() {
     <a-modal
       title="绑定媒体广告位"
       v-model:open="bindModalVisible"
-      :width="1000"
+      :width="1300"
       :footer="null"
     >
-      <div class="mb-4 flex gap-3">
-        <a-input
-          v-model:value="bindSearchName"
-          placeholder="广告位名称"
+      <div class="mb-4 flex flex-wrap gap-3">
+        <a-select
+          v-model:value="bindSearchMediaId"
+          placeholder="媒体简称"
           class="flex-1"
+          style="min-width: 150px"
+          show-search
+          :options="bindMediaOptions"
+          :filter-option="false"
           allow-clear
-          @pressEnter="loadBindSlotList"
+          @change="loadBindSlotList"
+        />
+        <a-select
+          v-model:value="bindSearchAppId"
+          placeholder="应用名称"
+          class="flex-1"
+          style="min-width: 150px"
+          show-search
+          :options="bindAppOptions"
+          :filter-option="false"
+          allow-clear
+          @change="loadBindSlotList"
+        />
+        <a-select
+          v-model:value="bindSearchSlotName"
+          placeholder="媒体广告位名称"
+          class="flex-1"
+          style="min-width: 150px"
+          show-search
+          :options="bindSlotNameOptions"
+          :filter-option="false"
+          allow-clear
+          @change="loadBindSlotList"
+        />
+        <a-select
+          v-model:value="bindSearchSlotId"
+          placeholder="媒体广告位ID"
+          class="flex-1"
+          style="min-width: 150px"
+          show-search
+          :options="bindSlotIdOptions"
+          :filter-option="false"
+          allow-clear
+          @change="loadBindSlotList"
         />
         <a-button type="primary" @click="loadBindSlotList">搜索</a-button>
-        <a-button
-          @click="() => {
-            bindSearchName.value = '';
-            loadBindSlotList();
-          }"
-        >
-          重置
-        </a-button>
+        <a-button @click="handleBindSearchReset">重置</a-button>
       </div>
 
       <a-table

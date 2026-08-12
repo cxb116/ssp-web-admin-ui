@@ -6,6 +6,22 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { getMediaSimpleList } from '#/api/ssp/media';
+import { getAppPage } from '#/api/ssp/app';
+
+async function getAppNameOptions() {
+  const res = await getAppPage({ pageNo: 1, pageSize: 1000 });
+  const list = res.list || [];
+  const map = new Map<string, number>();
+  list.forEach((a) => {
+    if (a.name && !map.has(a.name)) {
+      map.set(a.name, a.id!);
+    }
+  });
+  return Array.from(map.entries()).map(([name, id]) => ({
+    label: `${name}(${id})`,
+    value: name,
+  }));
+}
 
 /** 新增/修改的表单 */
 export function useFormSchema(): VbenFormSchema[] {
@@ -119,10 +135,15 @@ export function useGridFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'name',
       label: '应用名称',
-      component: 'Input',
+      component: 'ApiSelect',
       componentProps: {
         allowClear: true,
-        placeholder: '请输入应用名称',
+        api: getAppNameOptions,
+        placeholder: '请选择应用名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+        },
       },
     },
     {
@@ -161,7 +182,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<SspAppApi.App>['columns'] {
   return [
-  // { type: 'checkbox', width: 40, align: 'left' },
+    { type: 'seq', title: '#', width: 60, align: 'center', headerAlign: 'center' },
     {
       field: 'id',
       title: '媒体应用ID',

@@ -7,6 +7,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
 import { getCompanyPage } from '#/api/dsp/company';
+import { getProductPage } from '#/api/dsp/product';
 
 async function getCompanyOptions() {
   const res = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
@@ -14,6 +15,19 @@ async function getCompanyOptions() {
     label: company.name || '',
     value: company.id,
   }));
+}
+
+async function getProductNameOptions() {
+  const res = await getProductPage({ pageNo: 1, pageSize: 1000 });
+  const seen = new Set<string>();
+  const options: { label: string; value: string }[] = [];
+  (res.list || []).forEach((product: DspProductApi.Product) => {
+    if (product.name && !seen.has(product.name)) {
+      seen.add(product.name);
+      options.push({ label: product.name, value: product.name });
+    }
+  });
+  return options;
 }
 
 /** 新增/修改的表单 */
@@ -65,15 +79,6 @@ export function useFormSchema(): VbenFormSchema[] {
 export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
-      fieldName: 'name',
-      label: '预算产品名称',
-      component: 'Input',
-      componentProps: {
-        allowClear: true,
-        placeholder: '请输入预算产品名称',
-      },
-    },
-    {
       fieldName: 'companyId',
       label: '预算公司名称',
       component: 'ApiSelect',
@@ -83,6 +88,23 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '请选择预算公司名称',
         showSearch: true,
         filterOption: false,
+      },
+    },
+    {
+      fieldName: 'name',
+      label: '预算产品名称',
+      component: 'ApiSelect',
+      componentProps: {
+        mode: 'multiple',
+        allowClear: true,
+        api: getProductNameOptions,
+        placeholder: '请选择预算产品名称',
+        showSearch: true,
+        filterOption: (input: string, option: any) => {
+          return (option?.label ?? '')
+            .toLowerCase()
+            .includes(input.toLowerCase());
+        },
       },
     },
     {
@@ -101,6 +123,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
 /** 列表的字段 */
 export function useGridColumns(): VxeTableGridOptions<DspProductApi.Product>['columns'] {
   return [
+    { type: 'seq', title: '#', width: 60, align: 'center', headerAlign: 'center' },
     {
       field: 'id',
       title: '预算产品ID',

@@ -177,10 +177,14 @@ const [Grid, gridApi] = useVbenVxeGrid({
             return s ? s.split(/\s+/) : undefined;
           };
           if (formValues.id) {
-            params.id = splitStr(formValues.id);
+            params.id = Array.isArray(formValues.id)
+              ? formValues.id
+              : splitStr(formValues.id);
           }
           if (formValues.nameAlise) {
-            params.nameAlise = splitStr(formValues.nameAlise);
+            params.nameAlise = Array.isArray(formValues.nameAlise)
+              ? formValues.nameAlise
+              : splitStr(formValues.nameAlise);
           }
           return await getSlotInfoPage(params);
         },

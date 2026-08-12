@@ -1,19 +1,21 @@
 import type { VbenFormSchema } from '#/adapter/form';
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
-import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
 import type { DspProductApi } from '#/api/dsp/product';
 import type { DspCompanyApi } from '#/api/dsp/company';
+import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
+
+import { h, ref, watch } from 'vue';
+
+import dayjs from 'dayjs';
+
+import { DatePicker, Select } from 'ant-design-vue';
 
 import { DICT_TYPE } from '@vben/constants';
 import { getDictOptions } from '@vben/hooks';
 
-import dayjs from 'dayjs';
-
 import { getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
 import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
-import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
-import { getRangePickerDefaultProps } from '#/utils';
 
 async function getProductOptions(params: { companyId?: number }) {
   const res = await getProductPage({
@@ -43,204 +45,10 @@ async function getDspSlotOptions() {
   }));
 }
 
-/** 新增/修改的表单 */
-export function useFormSchema(): VbenFormSchema[] {
-  return [
-    {
-      fieldName: 'id',
-      component: 'Input',
-      dependencies: {
-        triggerFields: [''],
-        show: () => false,
-      },
-    },
-    {
-      fieldName: 'dspSlotId',
-      label: '预算位ID',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入预算位ID',
-      },
-    },
-    {
-      fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入预算广告位ID',
-      },
-    },
-    {
-      fieldName: 'sspSlotId',
-      label: '媒体广告ID',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入媒体广告ID',
-      },
-    },
-    {
-      fieldName: 'showPv',
-      label: '展示PV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入展示PV',
-      },
-    },
-    {
-      fieldName: 'showUv',
-      label: '展示UV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入展示UV',
-      },
-    },
-    {
-      fieldName: 'clickPv',
-      label: '点击PV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入点击PV',
-      },
-    },
-    {
-      fieldName: 'clickUv',
-      label: '点击UV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入点击UV',
-      },
-    },
-    {
-      fieldName: 'reqPv',
-      label: '请求PV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入请求PV',
-      },
-    },
-    {
-      fieldName: 'reqUv',
-      label: '请求UV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入请求UV',
-      },
-    },
-    {
-      fieldName: 'discard',
-      label: '丢弃请求',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入丢弃请求',
-      },
-    },
-    {
-      fieldName: 'retPv',
-      label: '返回PV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返回PV',
-      },
-    },
-    {
-      fieldName: 'retUv',
-      label: '返回UV',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入返回UV',
-      },
-    },
-    {
-      fieldName: 'spend',
-      label: '成本(分)',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入成本(分)',
-      },
-    },
-    {
-      fieldName: 'income',
-      label: '收入(分)',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入收入(分)',
-      },
-    },
-    {
-      fieldName: 'date',
-      label: '时间',
-      component: 'DatePicker',
-      componentProps: {
-        showTime: true,
-        format: 'YYYY-MM-DD HH:mm:ss',
-        valueFormat: 'x',
-      },
-    },
-    {
-      fieldName: 'createdAt',
-      label: '创建时间戳',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入创建时间戳',
-      },
-    },
-    {
-      fieldName: 'discountClickPv',
-      label: '折后点击',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入折后点击',
-      },
-    },
-    {
-      fieldName: 'discountShowPv',
-      label: '折后展示',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入折后展示',
-      },
-    },
-    {
-      fieldName: 'dplsuccPv',
-      label: '调起成功',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入调起成功',
-      },
-    },
-    {
-      fieldName: 'completePv',
-      label: '完成量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入完成量',
-      },
-    },
-    {
-      fieldName: 'installPv',
-      label: '安装量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入安装量',
-      },
-    },
-    {
-      fieldName: 'activatePv',
-      label: '激活量',
-      rules: 'required',
-      component: 'Input',
-      componentProps: {
-        placeholder: '请输入激活量',
-      },
-    },
-  ];
-}
+const hourOptions = [
+  { label: '全天', value: -1 },
+  ...Array.from({ length: 24 }, (_, i) => ({ label: `${i}`, value: i })),
+];
 
 /** 列表的搜索表单 */
 export function useGridFormSchema(): VbenFormSchema[] {
@@ -280,7 +88,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
         allowClear: true,
         api: getProductOptions,
         dependencies: ['companyId'],
-        placeholder: '请选择产品名称',
+        placeholder: '请选择预算产品名称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '')
@@ -315,37 +123,62 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '多个用空格分隔',
       },
     },
-    // {
-    //   fieldName: 'sspSlotId',
-    //   label: '媒体方广告位ID',
-    //   component: 'Input',
-    //   componentProps: {
-    //     allowClear: true,
-    //     placeholder: '多个用空格分隔',
-    //   },
-    // },
     {
       fieldName: 'date',
       label: '时间',
-      component: 'RangePicker',
-      componentProps: {
-        ...getRangePickerDefaultProps(),
-        format: 'YYYY-MM-DD',
-        valueFormat: 'YYYY-MM-DD',
-        showTime: false,
-        allowClear: true,
+      component: {
+        props: ['modelValue'],
+        emits: ['update:modelValue'],
+        setup(props: any, { emit }: any) {
+          const dateVal = ref('');
+          const hourVal = ref(-1);
+
+          const parse = (val: any) => {
+            const v = String(val ?? dayjs().format('YYYYMMDD'));
+            if (v.length >= 10) {
+              dateVal.value = v.slice(0, 8);
+              hourVal.value = parseInt(v.slice(8), 10) || 0;
+            } else {
+              dateVal.value = v.slice(0, 8);
+              hourVal.value = -1;
+            }
+          };
+          parse(props.modelValue);
+
+          watch(() => props.modelValue, parse);
+
+          const emitValue = () => {
+            if (hourVal.value === -1) {
+              emit('update:modelValue', dateVal.value);
+            } else {
+              emit('update:modelValue', dateVal.value + String(hourVal.value).padStart(2, '0'));
+            }
+          };
+
+          return () => h('div', { style: { display: 'flex', gap: '4px', width: '100%' } }, [
+            h(DatePicker, {
+              value: dayjs(dateVal.value, 'YYYYMMDD'),
+              format: 'YYYY-MM-DD',
+              style: { flex: '1' },
+              onChange: (d: any) => { dateVal.value = d ? d.format('YYYYMMDD') : dayjs().format('YYYYMMDD'); emitValue(); },
+            }),
+            h(Select, {
+              value: hourVal.value,
+              options: hourOptions,
+              style: { width: '90px' },
+              onChange: (v: number) => { hourVal.value = v; emitValue(); },
+            }),
+          ]);
+        },
       },
-      defaultValue: [
-        dayjs().subtract(6, 'day').startOf('day').format('YYYY-MM-DD'),
-        dayjs().endOf('day').format('YYYY-MM-DD'),
-      ],
+      defaultValue: dayjs().format('YYYYMMDD'),
     },
   ];
 }
 
 /** 列表的字段 */
-export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotDay>['columns'] {
-  const columns: VxeTableGridOptions<DataDspSlotDayApi.DspSlotDay>['columns'] = [
+export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
+  const columns: VxeTableGridOptions<any>['columns'] = [
     {
       type: 'seq',
       title: '#',
@@ -354,23 +187,17 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       headerAlign: 'center',
     },
     {
-      type: 'expand',
-      title: '',
-      width: 30,
-      align: 'center',
-      slots: {
-        content: 'expand_content',
-      },
-    },
-    {
       field: 'date',
-      title: '日期',
-      minWidth: 90,
-      align: 'left',
+      title: '时间',
+      minWidth: 70,
       sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
+        // 兼容 2026072411 -> 11:00
+        if (str.length === 10 && /^\d{10}$/.test(str)) {
+          return `${str.slice(8, 10)}:00`;
+        }
         // 兼容 20260724 -> 2026-07-24
         if (str.length === 8 && /^\d{8}$/.test(str)) {
           return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
@@ -378,17 +205,10 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
         return str;
       },
     },
-    // {
-    //   field: 'companyName',
-    //   title: '预算公司名称',
-    //   minWidth: 120,
-    //   align: 'left',
-    // },
     {
       field: 'dspName',
       title: '预算位名称',
-      minWidth: 200,
-      align: 'left',
+      minWidth: 180,
       slots: {
         default: 'dspName-slot',
       },
@@ -396,39 +216,54 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     {
       field: 'dspSlotCode',
       title: '预算广告位ID',
-      minWidth: 200,
-      align: 'left',
+      minWidth: 140,
+    },
+    {
+      field: 'dspSlotId',
+      title: '预算位ID',
+      minWidth: 120,
+    },
+    {
+      field: 'companyName',
+      title: '预算公司名称',
+      minWidth: 120,
     },
     {
       field: 'productName',
       title: '预算产品名称',
       minWidth: 120,
-      align: 'left',
     },
-    // {
-    //   field: 'osType',
-    //   title: '操作系统',
-    //   minWidth: 100,
-    //   align: 'left',
-    //   slots: {
-    //     default: 'osType-slot',
-    //   },
-    // },
-    // {
-    //   field: 'dspSlotCode',
-    //   title: '预算广告位ID',
-    //   minWidth: 140,
-    //   align: 'left',
-    // },
-    // {
-    //   field: 'sspSlotId',
-    //   title: '媒体方广告位ID',
-    //   minWidth: 120,
-    //   align: 'left',
-    //   slots: {
-    //     default: 'sspSlotId-slot',
-    //   },
-    // },
+    {
+      field: 'sspSlotId',
+      title: '媒体广告位ID',
+      minWidth: 120,
+      slots: {
+        default: 'sspSlotId-slot',
+      },
+    },
+    {
+      field: 'mediaName',
+      title: '媒体名称',
+      minWidth: 120,
+    },
+    {
+      field: 'sspName',
+      title: '媒体广告位名称',
+      minWidth: 150,
+    },
+    {
+      field: 'appName',
+      title: '应用名称',
+      minWidth: 120,
+    },
+    {
+      field: 'osType',
+      title: '操作系统',
+      minWidth: 100,
+      slots: {
+        default: 'osType-slot',
+      },
+    },
     {
       field: 'reqPv',
       title: '请求PV',
@@ -544,19 +379,20 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     },
     {
       field: 'spend',
-      title: '成本(元)',
+      title: '成本(分)',
       minWidth: 120,
       sortable: true,
       slots: { default: 'spend-slot' },
     },
     {
       field: 'income',
-      title: '收入(元)',
+      title: '收入(分)',
       minWidth: 120,
       sortable: true,
       slots: { default: 'income-slot' },
     },
   ];
+  // 统一设置表头和数据居中
   columns.forEach((col: any) => {
     col.align = 'center';
     col.headerAlign = 'center';
