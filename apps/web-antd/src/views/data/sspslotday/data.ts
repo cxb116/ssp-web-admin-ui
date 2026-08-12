@@ -392,21 +392,13 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
     },
     {
       type: 'expand',
-<<<<<<< HEAD
       width: 30,
-=======
-      width: 24,
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       slots: { content: 'expand_content' },
     },
     {
       field: 'date',
       title: '日期',
-<<<<<<< HEAD
       minWidth: 100,
-=======
-      minWidth: 90,
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       align: 'left',
       sortable: true,
       formatter: ({ cellValue }) => {

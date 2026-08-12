@@ -385,11 +385,7 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
       field: 'dspSlotCode',
       title: '预算方广告位ID',
       minWidth: 230,
-<<<<<<< HEAD
       align: 'center',
-=======
-      align: 'left',
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       headerAlign: 'center',
     },
     {

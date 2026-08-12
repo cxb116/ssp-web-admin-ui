@@ -356,11 +356,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     {
       type: 'expand',
       title: '',
-<<<<<<< HEAD
       width: 30,
-=======
-      width: 24,
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
       align: 'center',
       slots: {
         content: 'expand_content',

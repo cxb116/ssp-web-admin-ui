@@ -363,10 +363,7 @@ async function handleBindBudget(groupId: number, budgetId: number = 0) {
   await loadCompanyOptions();
   await loadProductOptions();
   await loadBindSearchOptions();
-<<<<<<< HEAD
   bindModalVisible.value = true;
-=======
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
   await loadBindBudgetList();
 }
 
@@ -621,24 +618,14 @@ const bindTableColumns = computed(() => [
     dataIndex: 'name',
     key: 'name',
     width: 200,
-<<<<<<< HEAD
     align: 'center',
-=======
-    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
-    customCell: () => ({ style: { textAlign: 'left' } }),
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
   },
   {
     title: '预算广告位ID',
     dataIndex: 'dspSlotCode',
     key: 'dspSlotCode',
     width: 180,
-<<<<<<< HEAD
     align: 'center',
-=======
-    customHeaderCell: () => ({ style: { textAlign: 'center' } }),
-    customCell: () => ({ style: { textAlign: 'left' } }),
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
   },
   {
     title: '操作系统',
@@ -1075,11 +1062,7 @@ onMounted(() => {
       :footer="null"
     >
       <!-- 搜索区域：一行四列 -->
-<<<<<<< HEAD
       <div class="mb-4 flex flex-wrap justify-center gap-3">
-=======
-      <div class="mb-4 flex justify-center gap-3">
->>>>>>> 67a3d996f243c6b1852d672070032d7bdf491dc5
  <!-- 公司下拉框 -->
         <a-select
           v-model:value="bindSearchCompanyId"
