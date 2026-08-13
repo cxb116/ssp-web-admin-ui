@@ -111,7 +111,6 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
-        disabled: true,
         placeholder: '自动拼接生成',
       },
       dependencies: {
@@ -411,6 +410,12 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_AD_SCENE },
       },
+    },
+    {
+      field: 'reqCount',
+      title: '今日请求',
+      minWidth: 120,
+      align: 'center',
     },
     {
       field: 'ls',

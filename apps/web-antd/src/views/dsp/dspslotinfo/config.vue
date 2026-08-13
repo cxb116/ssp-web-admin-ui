@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted, watch, computed, h, nextTick } from 'vue';
+import { ref, onMounted, watch, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenForm } from '@vben/common-ui';
@@ -13,7 +13,7 @@ import { DICT_TYPE } from '@vben/constants';
 import { getSlotInfo, updateSlotInfo, createSlotInfo } from '#/api/dsp/dspslotinfo';
 import { getProduct, getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
-import { getLaunchDspSlotIdQuery, getLaunchSspSlotList, createLaunch, updateLaunch, deleteLaunch } from '#/api/dsp/launch';
+import { getLaunchDspSlotIdQuery, createLaunch, updateLaunch, deleteLaunch } from '#/api/dsp/launch';
 import { getSlotInfoPage as getSspSlotInfoPage } from '#/api/ssp/sspSlotInfo';
 import { getMediaSimpleList } from '#/api/ssp/media';
 import { getAppPage } from '#/api/ssp/app';
@@ -81,13 +81,15 @@ const bindSearchName = ref('');
 // 新增检索字段
 const bindSearchMediaId = ref<number | undefined>();
 const bindSearchAppId = ref<number | undefined>();
-const bindSearchSlotName = ref('');
-const bindSearchSlotId = ref('');
+const bindSearchSlotName = ref<string>();
+const bindSearchSlotId = ref<string>();
 // 下拉选项
 const bindMediaOptions = ref<{ label: string; value: number }[]>([]);
 const bindAppOptions = ref<{ label: string; value: number }[]>([]);
 const bindSlotNameOptions = ref<{ label: string; value: string }[]>([]);
 const bindSlotIdOptions = ref<{ label: string; value: number }[]>([]);
+// 当前弹窗会话绑定的 sspSlotId，每次打开弹框只能绑定 1 个
+const currentSessionBoundId = ref<number>(0);
 
 function getDictLabel(options: any[], value: number | undefined) {
   if (value === undefined || value === null) return '-';
@@ -116,6 +118,7 @@ async function loadSspSlotBindings() {
   if (!id.value) return;
   try {
     const launches = await getLaunchDspSlotIdQuery(id.value);
+    originalLaunchIds.value = launches.map((launch: any) => launch.id);
     sspSlotBindings.value = launches.map((launch: any, index: number) => {
       const sspSlotInfoDO = (launch as any).sspSlotInfoDo || [];
       const slotInfo = sspSlotInfoDO.length > 0 ? sspSlotInfoDO[0] : null;
@@ -147,14 +150,15 @@ async function loadSspSlotBindings() {
 }
 
 async function handleBindSspSlot() {
-  bindModalVisible.value = true;
+  currentSessionBoundId.value = 0;
   bindSearchName.value = '';
   bindSearchMediaId.value = undefined;
   bindSearchAppId.value = undefined;
-  bindSearchSlotName.value = '';
-  bindSearchSlotId.value = '';
+  bindSearchSlotName.value = undefined;
+  bindSearchSlotId.value = undefined;
   await loadBindSearchOptions();
   await loadBindSlotList();
+  bindModalVisible.value = true;
 }
 
 async function loadBindSearchOptions() {
@@ -194,8 +198,8 @@ async function loadBindSearchOptions() {
 function handleBindSearchReset() {
   bindSearchMediaId.value = undefined;
   bindSearchAppId.value = undefined;
-  bindSearchSlotName.value = '';
-  bindSearchSlotId.value = '';
+  bindSearchSlotName.value = undefined;
+  bindSearchSlotId.value = undefined;
   loadBindSlotList();
 }
 
@@ -205,6 +209,8 @@ async function loadBindSlotList() {
     const params: any = {
       pageNo: 1,
       pageSize: 1000,
+      osType: slotInfo.value?.osType,
+      adScene: slotInfo.value?.adScene,
     };
     if (bindSearchMediaId.value) {
       params.mediaId = bindSearchMediaId.value;
@@ -231,45 +237,45 @@ function isSlotBound(sspSlotId: number): boolean {
   return sspSlotBindings.value.some((b) => b.sspSlotId === sspSlotId);
 }
 
-async function handleBindSingle(sspSlotId: number, row: SspSlotInfoApi.SlotInfo) {
-  if (isSlotBound(sspSlotId)) {
-    message.info('该媒体广告位已绑定');
-    return;
-  }
+// 是否当前弹窗会话新添加的绑定（无 launchId 且是本次会话绑定的，可取消）
+function isNewlyBound(sspSlotId: number): boolean {
+  return sspSlotBindings.value.some(
+    (b) => b.sspSlotId === sspSlotId && !b.launchId && sspSlotId === currentSessionBoundId.value,
+  );
+}
 
-  let trafficGroup = 1;
-  let trafficWeight = 100;
-
-  if (id.value) {
-    const existingLaunches = await getLaunchSspSlotList(row.id!);
-    const hasTrafficGroup1 = existingLaunches.some((launch: any) => launch.trafficGroup === 1);
-
-    if (hasTrafficGroup1) {
-      const group1Launches = existingLaunches.filter((launch: any) => launch.trafficGroup === 1);
-      const totalWeight = group1Launches.reduce((sum: number, launch: any) => sum + (launch.trafficWeight || 0), 0);
-      const count = group1Launches.length + 1;
-      trafficWeight = Math.floor(totalWeight / count);
-      const remaining = totalWeight % count;
-      if (remaining > 0) {
-        trafficWeight += 1;
-      }
-      for (const launch of group1Launches) {
-        await updateLaunch({
-          ...launch,
-          trafficWeight: Math.floor(totalWeight / count),
-        } as any);
+// 每次打开弹框只能绑定 1 个媒体广告位，可在当前会话内切换
+function handleToggleBind(row: SspSlotInfoApi.SlotInfo) {
+  if (isSlotBound(row.id!)) {
+    // 旧绑定（有 launchId）或非当前会话的绑定，不可取消
+    if (!isNewlyBound(row.id!)) return;
+    // 取消当前会话的绑定
+    const index = sspSlotBindings.value.findIndex((b) => b.sspSlotId === row.id);
+    if (index > -1) {
+      sspSlotBindings.value.splice(index, 1);
+    }
+    currentSessionBoundId.value = 0;
+  } else {
+    // 先移除当前会话已绑定的（切换）
+    if (currentSessionBoundId.value > 0) {
+      const prevIndex = sspSlotBindings.value.findIndex((b) => b.sspSlotId === currentSessionBoundId.value);
+      if (prevIndex > -1) {
+        sspSlotBindings.value.splice(prevIndex, 1);
       }
     }
-  }
-
-  let launchId: number | undefined;
-
-  if (id.value) {
-    const result = await createLaunch({
+    // 绑定新广告位
+    const newId = sspSlotBindings.value.length > 0
+      ? Math.max(...sspSlotBindings.value.map((b) => b.id)) + 1
+      : 1;
+    sspSlotBindings.value.push({
+      id: newId,
       sspSlotId: row.id!,
-      dspSlotId: id.value,
-      trafficWeight,
-      trafficGroup,
+      sspSlotName: row.name || '',
+      sspSlotCode: row.nameAlise || '',
+      osType: row.osType,
+      adScene: row.adScene,
+      trafficGroup: 1,
+      trafficWeight: 100,
       floorPrice: 0,
       dspPayRatio: 0,
       launchTime: 1,
@@ -279,45 +285,13 @@ async function handleBindSingle(sspSlotId: number, row: SspSlotInfoApi.SlotInfo)
       ims: 0,
       clk: 0,
       pkgTrans: 1,
-    } as any);
-    launchId = result.id;
+    });
+    currentSessionBoundId.value = row.id!;
   }
-
-  sspSlotBindings.value.push({
-    id: sspSlotBindings.value.length + 1,
-    launchId,
-    sspSlotId: row.id!,
-    sspSlotName: row.name || '',
-    sspSlotCode: row.nameAlise || '',
-    osType: row.osType,
-    adScene: row.adScene,
-    trafficGroup,
-    trafficWeight,
-    floorPrice: 0,
-    dspPayRatio: 0,
-    launchTime: 1,
-    launchHour: '000000000000000000000000',
-    logTime: 0,
-    req: 0,
-    ims: 0,
-    clk: 0,
-    pkgTrans: 1,
-  });
-
-  bindModalVisible.value = false;
-  message.success('绑定成功');
 }
 
 async function handleDeleteBinding(binding: SspSlotBinding) {
-  if (binding.launchId && binding.launchId > 0) {
-    try {
-      await deleteLaunch(binding.launchId);
-      message.success('删除成功');
-    } catch (error: any) {
-      message.error('删除失败: ' + (error?.message || '未知错误'));
-      return;
-    }
-  }
+  // 只从列表中移除，点击保存后才真正删除
   const index = sspSlotBindings.value.findIndex((b) => b.id === binding.id);
   if (index > -1) {
     sspSlotBindings.value.splice(index, 1);
@@ -368,16 +342,6 @@ const bindTableColumns = [
     key: 'action',
     width: 100,
     align: 'center',
-    customRender: ({ record }: { record: SspSlotInfoApi.SlotInfo }) => {
-      const bound = isSlotBound(record.id!);
-      return bound
-        ? h('span', { class: 'text-green-500' }, '已绑定')
-        : h('a-button', {
-            size: 'small',
-            type: 'primary',
-            onClick: () => handleBindSingle(record.id!, record),
-          }, '绑定');
-    },
   },
 ];
 
@@ -582,7 +546,7 @@ const [BaseForm, formApi] = useVbenForm({
     label: '预算位名称',
     component: 'Input',
     componentProps: () => ({
-      disabled: !id.value,
+      // disabled: !id.value,
       placeholder: id.value ? '' : '自动拼接生成',
     }),
   },
@@ -600,7 +564,7 @@ const [BaseForm, formApi] = useVbenForm({
   },
   {
     fieldName: 'dspSlotCode',
-    label: '预算广告位ID',
+    label: '预算方广告位ID',
     component: 'Input',
   },
   
@@ -611,7 +575,7 @@ const [BaseForm, formApi] = useVbenForm({
   },
   {
     fieldName: 'dspAppSecret',
-    label: '预算方APPSECRET',
+    label: 'APPSECRET',
     component: 'Input',
   },
   {
@@ -647,6 +611,9 @@ const [BaseForm, formApi] = useVbenForm({
 ]
 });
 
+// 记录原始 launchId，用于保存时识别需要删除的旧绑定
+const originalLaunchIds = ref<number[]>([]);
+
 async function handleSave() {
   const { valid } = await formApi.validate();
   if (!valid) return;
@@ -655,20 +622,36 @@ async function handleSave() {
 
   try {
     if (id.value) {
+      // 编辑模式：更新预算位信息
       await updateSlotInfo({ id: id.value, ...formData });
     } else {
+      // 新增模式：先创建预算位
       const createResult = await createSlotInfo(formData);
       if (createResult && createResult.id) {
         id.value = createResult.id;
       }
     }
 
+    if (!id.value) return;
+
+    // 处理投放绑定：找出需要删除的旧绑定
+    const currentLaunchIds = sspSlotBindings.value
+      .filter((b) => b.launchId && b.launchId > 0)
+      .map((b) => b.launchId!);
+    const toDeleteIds = originalLaunchIds.value.filter(
+      (lid) => !currentLaunchIds.includes(lid),
+    );
+    for (const lid of toDeleteIds) {
+      await deleteLaunch(lid);
+    }
+
+    // 更新已有绑定 / 创建新绑定
     for (const binding of sspSlotBindings.value) {
       if (binding.launchId && binding.launchId > 0) {
         await updateLaunch({
           id: binding.launchId,
           sspSlotId: binding.sspSlotId,
-          dspSlotId: id.value!,
+          dspSlotId: id.value,
           trafficWeight: binding.trafficWeight || 0,
           trafficGroup: binding.trafficGroup || 0,
           floorPrice: binding.floorPrice || 0,
@@ -681,7 +664,7 @@ async function handleSave() {
           clk: binding.clk || 0,
           pkgTrans: binding.pkgTrans || 1,
         } as any);
-      } else if (id.value) {
+      } else {
         const result = await createLaunch({
           sspSlotId: binding.sspSlotId,
           dspSlotId: id.value,
@@ -700,6 +683,9 @@ async function handleSave() {
         binding.launchId = result.id;
       }
     }
+    originalLaunchIds.value = sspSlotBindings.value
+      .filter((b) => b.launchId && b.launchId > 0)
+      .map((b) => b.launchId!);
 
     message.success('保存成功');
     router.back();
@@ -729,7 +715,7 @@ function handleBack() {
       <a-card>
         <div class="flex justify-between items-center mb-4">
           <span class="text-gray-600">已绑定媒体广告位</span>
-          <a-button type="primary" @click="handleBindSspSlot">+ 添加广告位</a-button>
+          <a-button type="primary" :disabled="!id" @click="handleBindSspSlot">+ 添加广告位</a-button>
         </div>
 
         <div v-if="sspSlotBindings.length > 0" class="space-y-3">
@@ -926,7 +912,21 @@ function handleBack() {
         :pagination="false"
         :scroll="{ y: 500 }"
         :columns="bindTableColumns"
-      />
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'action'">
+            <a-button
+              size="small"
+              type="link"
+              :style="{ color: isSlotBound(record.id) ? 'red' : 'green' }"
+              :disabled="isSlotBound(record.id) && !isNewlyBound(record.id)"
+              @click="handleToggleBind(record)"
+            >
+              {{ isSlotBound(record.id) ? '已绑定' : '未绑定' }}
+            </a-button>
+          </template>
+        </template>
+      </a-table>
     </a-modal>
   </Page>
 </template>

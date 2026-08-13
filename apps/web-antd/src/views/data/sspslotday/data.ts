@@ -300,6 +300,16 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
+      fieldName: 'adScene',
+      label: '广告场景',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
+        placeholder: '请选择广告场景',
+      },
+    },
+    {
       fieldName: 'appId',
       label: '应用名称',
       component: 'ApiSelect',

@@ -64,10 +64,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
+      label: '预算方广告位ID',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算广告位ID',
+        placeholder: '请输入预算方广告位ID',
       },
     },
     {
@@ -308,7 +308,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
+      label: '预算方广告位ID',
       component: 'Input',
       componentProps: {
         allowClear: true,
@@ -378,7 +378,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     },
     {
       field: 'dspSlotCode',
-      title: '预算广告位ID',
+      title: '预算方广告位ID',
       minWidth: 140,
     },
     {

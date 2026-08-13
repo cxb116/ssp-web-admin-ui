@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { DspSlotInfoApi } from '#/api/dsp/dspslotinfo';
 
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 
 import { useVbenModal } from '@vben/common-ui';
 
@@ -10,10 +10,6 @@ import { message } from 'ant-design-vue';
 import { useVbenForm } from '#/adapter/form';
 import { createSlotInfo, getSlotInfo, updateSlotInfo } from '#/api/dsp/dspslotinfo';
 import { $t } from '#/locales';
-import { getCompanyPage } from '#/api/dsp/company';
-import { getProduct } from '#/api/dsp/product';
-import { DICT_TYPE } from '@vben/constants';
-import { getDictOptions } from '@vben/hooks';
 
 import { useFormSchema } from '../data';
 
@@ -37,48 +33,6 @@ const [Form, formApi] = useVbenForm({
   schema: useFormSchema(),
   showDefaultActions: false,
 });
-
-// 监听表单值变化，自动生成预算位名称
-watch(
-  () => {
-    const vals = formApi.form?.values;
-    if (!vals) return null;
-    return {
-      id: vals.id,
-      companyId: vals.companyId,
-      productId: vals.productId,
-      adScene: vals.adScene,
-    };
-  },
-  async (vals) => {
-    if (!vals || vals.id || !vals.companyId || !vals.productId || vals.adScene === undefined) return;
-    let companyLabel = '';
-    try {
-      const companies = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
-      const company = (companies.list || []).find((c: any) => c.id === vals.companyId);
-      companyLabel = company?.name || '';
-    } catch { /* ignore */ }
-    let productLabel = '';
-    let osTypeLabel = '';
-    try {
-      const product = await getProduct(vals.productId);
-      productLabel = product.name || '';
-      const osOpts = getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number');
-      const osItem = osOpts.find((o: any) => o.value === product.osType);
-      osTypeLabel = osItem?.label || '';
-    } catch { /* ignore */ }
-    const adOpts = getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number');
-    const adItem = adOpts.find((o: any) => o.value === vals.adScene);
-    const adSceneLabel = adItem?.label || '';
-    const newName = [companyLabel, productLabel, osTypeLabel, adSceneLabel]
-      .filter(Boolean)
-      .join('-');
-    if (newName) {
-      formApi.setFieldValue('name', newName);
-    }
-  },
-  { deep: true, immediate: false },
-);
 
 const [Modal, modalApi] = useVbenModal({
   async onConfirm() {

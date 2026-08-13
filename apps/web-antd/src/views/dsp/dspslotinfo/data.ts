@@ -153,7 +153,6 @@ export function useFormSchema(): VbenFormSchema[] {
       rules: 'required',
       component: 'Input',
       componentProps: {
-        disabled: true,
         placeholder: '自动拼接生成',
       },
       dependencies: {
@@ -409,6 +408,12 @@ export function useGridColumns(): VxeTableGridOptions<DspSlotInfoApi.SlotInfo>['
         name: 'CellDict',
         props: { type: DICT_TYPE.SSP_OS_TYPE },
       },
+    },
+    {
+      field: 'ls',
+      title: '关联广告位',
+      minWidth: 120,
+      align: 'center',
     },
     {
       field: 'dspPayType',

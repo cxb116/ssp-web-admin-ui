@@ -392,13 +392,13 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
     },
     {
       type: 'expand',
-      width: 24,
+      width: 30,
       slots: { content: 'expand_content' },
     },
     {
       field: 'date',
       title: '时间',
-      minWidth: 60,
+      minWidth: 70,
       align: 'left',
       sortable: true,
       formatter: ({ cellValue }) => {
@@ -416,13 +416,19 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       },
     },
     {
+      field: 'companyName',
+      title: '预算公司名称',
+      minWidth: 120,
+      align: 'left',
+    },
+    {
       field: 'dspName',
       title: '预算位名称',
       minWidth: 200,
     },
     {
       field: 'dspSlotCode',
-      title: '预算广告位ID',
+      title: '预算方广告位ID',
       minWidth: 200,
     },
     {

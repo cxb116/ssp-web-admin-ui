@@ -3,7 +3,7 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataDspSlotHourApi } from '#/api/data/dspslothour';
 import type { DataSspSlotHourApi } from '#/api/data/sspslothour';
 
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
@@ -62,6 +62,52 @@ function getInitialFormValues() {
 const initialFormValues = getInitialFormValues();
 
 const detailMap = reactive<Record<number, DataSspSlotHourApi.SspSlotHour[]>>({});
+
+/** 全量数据总和 */
+const allDataSum = ref<Record<string, number>>({});
+
+const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fillRate', 'displayRate', 'clickRate', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
+
+async function fetchAllDataSum(formValues: Record<string, any>) {
+  const params: Record<string, any> = {
+    pageNo: 1,
+    pageSize: 1000,
+  };
+  for (const key of Object.keys(formValues)) {
+    if (key === 'sspSlotId') continue;
+    if (!formValues[key]) continue;
+    params[key] = formValues[key];
+  }
+  if (formValues.sspSlotId) {
+    const val = String(formValues.sspSlotId).trim();
+    if (val) {
+      params.sspSlotId = val.split(/\s+/).map(Number).filter((n: number) => !isNaN(n));
+    }
+  }
+  if (formValues.date) {
+    const dateStr = String(formValues.date);
+    if (dateStr.length === 8) {
+      const dateNum = Number(dateStr);
+      params.date = [dateNum * 100, dateNum * 100 + 23];
+    } else {
+      params.date = [Number(dateStr)];
+    }
+  }
+  try {
+    const res = await getDspSlotHourPage(params);
+    const rows = (res as any).rows || (res as any).list || [];
+    const sum: Record<string, number> = {};
+    numericSumFields.forEach((f) => { sum[f] = 0; });
+    rows.forEach((row: any) => {
+      numericSumFields.forEach((f) => {
+        sum[f] += Number(row[f]) || 0;
+      });
+    });
+    allDataSum.value = sum;
+  } catch {
+    // ignore
+  }
+}
 
 /** 记录当前展开的主表行 ID */
 const expandedRowIds = reactive(new Set<number>());
@@ -209,9 +255,32 @@ const [Grid, gridApi] = useVbenVxeGrid({
               params.date = [Number(dateStr)];
             }
           }
-          return await getDspSlotHourPage(params);
+          // 并行加载分页数据和全量总和，确保 footer 渲染前数据就绪
+          const [result] = await Promise.all([
+            getDspSlotHourPage(params),
+            fetchAllDataSum(formValues),
+          ]);
+          return result;
         },
       },
+    },
+    showFooter: true,
+    footerConfig: {},
+    footerMethod({ columns }: { columns: any[]; data: any[] }) {
+      const sums: any[] = [];
+      columns.forEach((col, colIndex) => {
+        const field = col.field;
+        if (field === 'date') {
+          sums[colIndex] = '总和';
+          return;
+        }
+        if (allDataSum.value[field] !== undefined) {
+          sums[colIndex] = allDataSum.value[field];
+        } else {
+          sums[colIndex] = '';
+        }
+      });
+      return [sums];
     },
     rowConfig: {
       keyField: 'id',
@@ -280,30 +349,29 @@ const [Grid, gridApi] = useVbenVxeGrid({
             if (str.length === 4 && /^\d{4}$/.test(str)) return str.slice(0, 2) + ':00';
             return str;
           }" />
-          <VxeColumn title="媒体简称" field="sspName" width="150" />
+          <VxeColumn title="媒体简称" field="mediaName" width="150" />
           <VxeColumn title="应用名称" field="appName" width="120" />
-          <VxeColumn title="操作系统" width="100">
-            <template #default="{ row }">
-              <span>{{ osTypeLabel(row.osType) }}</span>
-            </template>
-          </VxeColumn>
-          <VxeColumn title="媒体广告位名称" field="sspSlotId" width="150" />
-          <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
-          <VxeColumn title="预算广告位ID" field="dspSlotCode" width="150" />
-          <VxeColumn title="请求数" field="reqCount" width="100" />
+          <VxeColumn title="媒体广告位名称" field="sspName" width="150" />
           <VxeColumn title="请求PV" field="reqPv" width="100" />
           <VxeColumn title="丢弃请求" field="discard" width="100" />
           <VxeColumn title="返回PV" field="retPv" width="100" />
           <VxeColumn title="展示PV" field="showPv" width="100" />
           <VxeColumn title="点击PV" field="clickPv" width="100" />
-          <VxeColumn title="成本(分)" field="spend" width="100" />
-          <VxeColumn title="收入(分)" field="income" width="100" />
+          <VxeColumn title="填充率" field="fillRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="展现率" field="displayRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="点击率" field="clickRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
           <VxeColumn title="折后点击" field="discountClickPv" width="100" />
           <VxeColumn title="折后展示" field="discountShowPv" width="100" />
           <VxeColumn title="调起成功" field="dplsuccPv" width="100" />
           <VxeColumn title="完成量" field="completePv" width="100" />
           <VxeColumn title="安装量" field="installPv" width="100" />
           <VxeColumn title="激活量" field="activatePv" width="100" />
+          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" />
+          <VxeColumn title="ecpm" field="ecpm" width="100" />
+          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" />
+          <VxeColumn title="ecprm" field="ecprm" width="100" />
+          <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
+          <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
         </VxeTable>
       </template>
       <template #toolbar-tools>

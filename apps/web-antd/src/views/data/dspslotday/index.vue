@@ -3,21 +3,19 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
 import type { DataSspSlotDayApi } from '#/api/data/sspslotday';
 
-import { onMounted, reactive, ref } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
 import { buildSortingField } from '@vben/request';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
-import dayjs from 'dayjs';
 import { message } from 'ant-design-vue';
 
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
 import {
   exportDspSlotDay,
   getDspSlotDayPage,
-  getDspSlotDaySum,
 } from '#/api/data/dspslotday';
 import { getSSPDspSlotDay } from '#/api/data/sspslotday';
 
@@ -42,18 +40,43 @@ const detailMap = reactive<Record<number, DataSspSlotDayApi.SspSlotDay[]>>({});
 /** 记录当前展开的主表行 ID */
 const expandedRowIds = reactive(new Set<number>());
 
-/** 今日总和数据 */
-const todaySum = ref<DataDspSlotDayApi.DspSlotDay | null>(null);
+/** 总和数据 */
+const allDataSum = ref<Record<string, number>>({});
 
-/** 请求后台获取今日总和 */
-async function fetchTodaySum() {
-  const today = Number(dayjs().format('YYYYMMDD'));
-  try {
-    todaySum.value = await getDspSlotDaySum(today);
-  } catch {
-    todaySum.value = null;
+const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fillRate', 'displayRate', 'clickRate', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
+
+/** 拉取全量数据计算总和 */
+async function fetchAllDataSum(formValues: Record<string, any>) {
+  const params: Record<string, any> = {
+    pageNo: 1,
+    pageSize: 1000,
+  };
+  for (const key of Object.keys(formValues)) {
+    if (key === 'sspSlotId') continue;
+    if (!formValues[key]) continue;
+    params[key] = formValues[key];
   }
-  gridApi.grid?.updateFooter();
+  const splitStr = (val: any) => {
+    const s = String(val ?? '').trim();
+    return s ? s.split(/\s+/) : undefined;
+  };
+  if (formValues.sspSlotId) {
+    params.sspSlotId = splitStr(formValues.sspSlotId);
+  }
+  try {
+    const res = await getDspSlotDayPage(params);
+    const rows = (res as any).rows || (res as any).list || [];
+    const sum: Record<string, number> = {};
+    numericSumFields.forEach((f) => { sum[f] = 0; });
+    rows.forEach((row: any) => {
+      numericSumFields.forEach((f) => {
+        sum[f] += Number(row[f]) || 0;
+      });
+    });
+    allDataSum.value = sum;
+  } catch {
+    // ignore
+  }
 }
 
 /** 清空展开明细缓存 */
@@ -195,7 +218,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
           if (formValues.sspSlotId) {
             params.sspSlotId = splitStr(formValues.sspSlotId);
           }
-          return await getDspSlotDayPage(params);
+          // 并行加载分页数据和全量总和，确保 footer 渲染前数据就绪
+          const [result] = await Promise.all([
+            getDspSlotDayPage(params),
+            fetchAllDataSum(formValues),
+          ]);
+          return result;
         },
       },
     },
@@ -214,18 +242,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
     footerConfig: {},
     footerMethod({ columns }: { columns: any[]; data: any[] }) {
       const sums: any[] = [];
-      const sum = todaySum.value;
       columns.forEach((col, colIndex) => {
         const field = col.field;
         if (field === 'dspName') {
-          sums[colIndex] = '今日总和';
+          sums[colIndex] = '总和';
           return;
         }
-        if (!field || !['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'spend', 'income'].includes(field)) {
+        if (allDataSum.value[field] !== undefined) {
+          sums[colIndex] = allDataSum.value[field];
+        } else {
           sums[colIndex] = '';
-          return;
         }
-        sums[colIndex] = sum ? (sum as any)[field] ?? 0 : 0;
       });
       return [sums];
     },
@@ -243,9 +270,6 @@ const [Grid, gridApi] = useVbenVxeGrid({
   },
 });
 
-onMounted(() => {
-  fetchTodaySum();
-});
 </script>
 
 <template>
@@ -287,32 +311,36 @@ onMounted(() => {
           size="small"
           align="center"
         >
-          <VxeColumn title="日期" field="date" width="120" />
-          <VxeColumn title="媒体简称" field="sspName" width="150" />
+          <VxeColumn title="日期" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
+            if (!cellValue) return '';
+            const str = String(cellValue);
+            if (str.length === 8 && /^\d{8}$/.test(str)) return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
+            return str;
+          }" />
+          <VxeColumn title="媒体简称" field="mediaName" width="150" />
           <VxeColumn title="应用名称" field="appName" width="120" />
-          <VxeColumn title="操作系统" width="100">
-            <template #default="{ row }">
-              <span>{{ osTypeLabel(row.osType) }}</span>
-            </template>
-          </VxeColumn>
-          <VxeColumn title="媒体广告位名称" field="sspSlotId" width="150" />
-          <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
-          <VxeColumn title="预算广告位ID" field="dspSlotCode" width="150" />
+          <VxeColumn title="媒体广告位名称" field="sspName" width="150" />
           <VxeColumn title="媒体广告ID" field="sspSlotId" width="120" />
-          <VxeColumn title="请求数" field="reqCount" width="100" />
           <VxeColumn title="请求PV" field="reqPv" width="100" />
           <VxeColumn title="丢弃请求" field="discard" width="100" />
           <VxeColumn title="返回PV" field="retPv" width="100" />
           <VxeColumn title="展示PV" field="showPv" width="100" />
           <VxeColumn title="点击PV" field="clickPv" width="100" />
-          <VxeColumn title="成本(分)" field="spend" width="100" />
-          <VxeColumn title="收入(分)" field="income" width="100" />
+          <VxeColumn title="填充率" field="fillRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="展现率" field="displayRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="点击率" field="clickRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
           <VxeColumn title="折后点击" field="discountClickPv" width="100" />
           <VxeColumn title="折后展示" field="discountShowPv" width="100" />
           <VxeColumn title="调起成功" field="dplsuccPv" width="100" />
           <VxeColumn title="完成量" field="completePv" width="100" />
           <VxeColumn title="安装量" field="installPv" width="100" />
           <VxeColumn title="激活量" field="activatePv" width="100" />
+          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" />
+          <VxeColumn title="ecpm" field="ecpm" width="100" />
+          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" />
+          <VxeColumn title="ecprm" field="ecprm" width="100" />
+          <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
+          <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
         </VxeTable>
       </template>
       <template #toolbar-tools>

@@ -24,6 +24,8 @@ export namespace SspSlotInfoApi {
     appName?: string; // 应用名称
     mediaName?: string; // 媒体名称
     sspName?: string; // SSP内部名称
+    ls?: number; // 关联广告位数量
+    reqCount?: number; // 请求数
 
 
   }

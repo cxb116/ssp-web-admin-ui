@@ -38,7 +38,7 @@ async function getCompanyOptions() {
 async function getDspSlotOptions() {
   const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
   return (res.list || []).map((slot: DspSlotInfoApi.SlotInfo) => ({
-    label: `${slot.name || ''}/${slot.id}`,
+    label: `${slot.name || ''}(${slot.id})`,
     value: slot.id,
   }));
 }
@@ -64,10 +64,10 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
+      label: '预算方广告位ID',
       component: 'Input',
       componentProps: {
-        placeholder: '请输入预算广告位ID',
+        placeholder: '请输入预算方广告位ID',
       },
     },
     {
@@ -308,13 +308,30 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotCode',
-      label: '预算广告位ID',
+      label: '预算方广告位ID',
       component: 'Input',
       componentProps: {
         allowClear: true,
         placeholder: '多个用空格分隔',
       },
     },
+    // {
+    //   fieldName: 'dspSlotId',
+    //   label: '预算位ID',
+    //   component: 'ApiSelect',
+    //   componentProps: {
+    //     mode: 'multiple',
+    //     allowClear: true,
+    //     api: getDspSlotOptions,
+    //     placeholder: '请选择预算位ID',
+    //     showSearch: true,
+    //     filterOption: (input: string, option: any) => {
+    //       return (option?.label ?? '')
+    //         .toLowerCase()
+    //         .includes(input.toLowerCase());
+    //     },
+    //   },
+    // },
     // {
     //   fieldName: 'sspSlotId',
     //   label: '媒体方广告位ID',
@@ -365,7 +382,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     {
       field: 'date',
       title: '日期',
-      minWidth: 90,
+      minWidth: 110,
       align: 'left',
       sortable: true,
       formatter: ({ cellValue }) => {
@@ -378,12 +395,12 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
         return str;
       },
     },
-    // {
-    //   field: 'companyName',
-    //   title: '预算公司名称',
-    //   minWidth: 120,
-    //   align: 'left',
-    // },
+    {
+      field: 'companyName',
+      title: '预算公司名称',
+      minWidth: 120,
+      align: 'left',
+    },
     {
       field: 'dspName',
       title: '预算位名称',
@@ -395,7 +412,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
     },
     {
       field: 'dspSlotCode',
-      title: '预算广告位ID',
+      title: '预算方广告位ID',
       minWidth: 200,
       align: 'left',
     },

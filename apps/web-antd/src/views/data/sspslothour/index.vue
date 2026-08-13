@@ -2,7 +2,7 @@
 import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataSspSlotHourApi } from '#/api/data/sspslothour';
 
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
@@ -149,6 +149,57 @@ function handleSspSlotIdClick(row: DataSspSlotHourApi.SspSlotHour) {
   }
 }
 
+/** 全量数据总和 */
+const allDataSum = ref<Record<string, number>>({});
+
+const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fillRate', 'displayRate', 'clickRate', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
+
+async function fetchAllDataSum(formValues: Record<string, any>) {
+  const params: Record<string, any> = {
+    pageNo: 1,
+    pageSize: 4000,
+  };
+  for (const key of Object.keys(formValues)) {
+    if (key === 'date' || key === 'sspSlotId' || key === 'dspSlotId') continue;
+    if (!formValues[key]) continue;
+    params[key] = formValues[key];
+  }
+  // 时间：8位=全天(YYYYMMDD)，10位=指定小时(YYYYMMDDHH)
+  if (formValues.date) {
+    const dateStr = String(formValues.date);
+    if (dateStr.length === 8) {
+      const dateNum = Number(dateStr);
+      params.date = [dateNum * 100, dateNum * 100 + 23];
+    } else {
+      params.date = [Number(dateStr)];
+    }
+  }
+  const splitNum = (val: any) => {
+    const s = String(val ?? '').trim();
+    return s ? s.split(/\s+/).map(Number).filter((n) => !isNaN(n)) : undefined;
+  };
+  if (formValues.sspSlotId) {
+    params.sspSlotId = splitNum(formValues.sspSlotId);
+  }
+  if (formValues.dspSlotId) {
+    params.dspSlotId = splitNum(formValues.dspSlotId);
+  }
+  try {
+    const res = await getSspSlotHourPage(params);
+    const rows = (res as any).rows || (res as any).list || [];
+    const sum: Record<string, number> = {};
+    numericSumFields.forEach((f) => { sum[f] = 0; });
+    rows.forEach((row: any) => {
+      numericSumFields.forEach((f) => {
+        sum[f] += Number(row[f]) || 0;
+      });
+    });
+    allDataSum.value = sum;
+  } catch {
+    // ignore
+  }
+}
+
 const [Grid, gridApi] = useVbenVxeGrid({
   formOptions: {
     schema: useGridFormSchema(),
@@ -206,7 +257,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
           if (formValues.dspSlotId) {
             params.dspSlotId = splitNum(formValues.dspSlotId);
           }
-          return await getSspSlotHourPage(params);
+          // 并行加载分页数据和全量总和，确保 footer 渲染前数据就绪
+          const [result] = await Promise.all([
+            getSspSlotHourPage(params),
+            fetchAllDataSum(formValues),
+          ]);
+          return result;
         },
       },
     },
@@ -220,6 +276,24 @@ const [Grid, gridApi] = useVbenVxeGrid({
     toolbarConfig: {
       refresh: true,
       search: true,
+    },
+    showFooter: true,
+    footerConfig: {},
+    footerMethod({ columns }: { columns: any[]; data: any[] }) {
+      const sums: any[] = [];
+      columns.forEach((col, colIndex) => {
+        const field = col.field;
+        if (field === 'date') {
+          sums[colIndex] = '总和';
+          return;
+        }
+        if (allDataSum.value[field] !== undefined) {
+          sums[colIndex] = allDataSum.value[field];
+        } else {
+          sums[colIndex] = '';
+        }
+      });
+      return [sums];
     },
   } as VxeTableGridOptions<DataSspSlotHourApi.SspSlotHour>,
   gridEvents: {
@@ -281,28 +355,36 @@ const [Grid, gridApi] = useVbenVxeGrid({
           <VxeColumn title="时间" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
             if (!cellValue) return '';
             const str = String(cellValue);
-            if (str.length >= 10) return str.slice(-2) + ':00';
-            if (str.length === 4 && /^\d{4}$/.test(str)) return str.slice(0, 2) + ':00';
+            // 2026072411 -> 11:00
+            if (str.length === 10 && /^\d{10}$/.test(str)) return str.slice(8) + ':00';
             return str;
           }" />
           <VxeColumn title="公司名称" field="companyName" width="120" />
           <VxeColumn title="产品名称" field="productName" width="150" />
+          <VxeColumn title="预算位名称" field="dspName" width="150" />
           <VxeColumn title="预算位ID" field="dspSlotId" width="100" />
-          <VxeColumn title="预算广告位ID" field="dspSlotCode" width="150" />
+          <VxeColumn title="预算方广告位ID" field="dspSlotCode" width="150" />
           <VxeColumn title="媒体广告ID" field="sspSlotId" width="120" />
           <VxeColumn title="请求PV" field="reqPv" width="100" />
           <VxeColumn title="丢弃请求" field="discard" width="100" />
           <VxeColumn title="返回PV" field="retPv" width="100" />
           <VxeColumn title="展示PV" field="showPv" width="100" />
           <VxeColumn title="点击PV" field="clickPv" width="100" />
-          <VxeColumn title="成本(分)" field="spend" width="100" />
-          <VxeColumn title="收入(分)" field="income" width="100" />
+          <VxeColumn title="填充率" field="fillRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="展现率" field="displayRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
+          <VxeColumn title="点击率" field="clickRate" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? `${cellValue}%` : '-'" />
           <VxeColumn title="折后点击" field="discountClickPv" width="100" />
           <VxeColumn title="折后展示" field="discountShowPv" width="100" />
           <VxeColumn title="调起成功" field="dplsuccPv" width="100" />
           <VxeColumn title="完成量" field="completePv" width="100" />
           <VxeColumn title="安装量" field="installPv" width="100" />
           <VxeColumn title="激活量" field="activatePv" width="100" />
+          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" />
+          <VxeColumn title="ecpm" field="ecpm" width="100" />
+          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" />
+          <VxeColumn title="ecprm" field="ecprm" width="100" />
+          <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
+          <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
         </VxeTable>
       </template>
       <template #toolbar-tools>

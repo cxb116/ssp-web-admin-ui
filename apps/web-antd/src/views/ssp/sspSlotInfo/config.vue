@@ -76,6 +76,7 @@ interface BudgetInfo {
   logTime: number;
   sizeRatio: string;
   dealType: string;
+  _deleted?: boolean;
 }
 
 const trafficGroups = ref<TrafficGroupData[]>([]);
@@ -283,19 +284,8 @@ function handleDeleteGroup(index: number) {
 async function handleDeleteBudget(group: TrafficGroupData, index: number) {
   const budget = group.budgets[index];
   if (!budget) return;
-
-  if (budget.launchId && budget.launchId > 0) {
-    try {
-      await deleteLaunch(budget.launchId);
-      message.success('删除成功');
-    } catch (error: any) {
-      console.error('删除失败:', error);
-      message.error('删除失败: ' + (error?.message || '未知错误'));
-      return;
-    }
-  }
-
-  group.budgets.splice(index, 1);
+  // 标记为待删除，不立即调接口
+  budget._deleted = true;
 }
 
 function handleAddBudget(groupId: number) {
@@ -338,8 +328,8 @@ const bindLoading = ref(false);
 const bindBudgetList = ref<DspSlotInfoApi.SlotInfo[]>([]);
 const selectedBudgetIds = ref<number[]>([]);
 // 搜索条件
-const bindSearchName = ref('');
-const bindSearchDspSlotCode = ref('');
+const bindSearchName = ref<string>();
+const bindSearchDspSlotCode = ref<string>();
 const bindSearchCompanyId = ref<number | undefined>();
 const bindSearchProductId = ref<number | undefined>();
 // 公司下拉数据
@@ -355,8 +345,8 @@ const bindDspSlotCodeOptions = ref<{ label: string; value: string }[]>([]);
 async function handleBindBudget(groupId: number, budgetId: number = 0) {
   bindGroupId.value = groupId;
   bindBudgetId.value = budgetId;
-  bindSearchName.value = '';
-  bindSearchDspSlotCode.value = '';
+  bindSearchName.value = undefined;
+  bindSearchDspSlotCode.value = undefined;
   bindSearchCompanyId.value = undefined;
   bindSearchProductId.value = undefined;
   selectedBudgetIds.value = [];
@@ -468,8 +458,8 @@ async function loadBindBudgetList() {
 }
 
 function handleBindSearchReset() {
-  bindSearchName.value = '';
-  bindSearchDspSlotCode.value = '';
+  bindSearchName.value = undefined;
+  bindSearchDspSlotCode.value = undefined;
   bindSearchCompanyId.value = undefined;
   bindSearchProductId.value = undefined;
   loadBindBudgetList();
@@ -535,12 +525,12 @@ function handleHourMouseUp() {
 
 // ==================== 绑定预算表格列配置 ====================
 
-// 已绑定的预算广告位ID集合（跨所有流量组）
+// 已绑定的预算广告位ID集合（跨所有流量组，排除已标记删除的）
 const boundDspSlotIds = computed(() => {
   const ids = new Set<number>();
   trafficGroups.value.forEach((g) => {
     g.budgets.forEach((b) => {
-      if (b.dspSlotId > 0) {
+      if (!b._deleted && b.dspSlotId > 0) {
         ids.add(b.dspSlotId);
       }
     });
@@ -621,7 +611,7 @@ const bindTableColumns = computed(() => [
     align: 'center',
   },
   {
-    title: '预算广告位ID',
+    title: '预算方广告位ID',
     dataIndex: 'dspSlotCode',
     key: 'dspSlotCode',
     width: 180,
@@ -706,7 +696,10 @@ async function handleSave() {
     trafficGroups.value.forEach((group, gi) => {
       const trafficGroup = gi + 1;
       group.budgets.forEach((budget) => {
-        if (budget.dspSlotId > 0) {
+        if (budget._deleted && budget.launchId && budget.launchId > 0) {
+          // 标记删除的，调删除接口
+          promises.push(deleteLaunch(budget.launchId));
+        } else if (!budget._deleted && budget.dspSlotId > 0) {
           const launchData = {
             id: budget.launchId || 0,
             sspSlotId: slotId.value,
@@ -886,10 +879,10 @@ onMounted(() => {
                 <!-- 预算列表 -->
                 <div class="mt-3 space-y-3">
                   <!-- 每个预算卡片 -->
-                  <div
-                    v-for="(budget, bi) in group.budgets"
-                    :key="budget.id"
-                    class="flex rounded border border-gray-200 overflow-hidden"
+                  <template v-for="(budget, bi) in group.budgets" :key="budget.id">
+                    <div
+                      v-if="!budget._deleted"
+                      class="flex rounded border border-gray-200 overflow-hidden"
                   >
                     <!-- 预算配置表单（自适应宽度） -->
                     <div class="p-4 space-y-4 flex-1 min-w-0">
@@ -897,7 +890,7 @@ onMounted(() => {
                       <div class="flex items-center gap-4 mb-2 pb-2 pt-2 pl-4 pr-4 border-b border-gray-200 bg-gray-800 -mx-4 mt-0">
                         <span class="font-medium text-white">预算位名称：{{ budget.name }}({{ budget.dspSlotId }})</span>
                         <span class="text-gray-400">|</span>
-                        <span class="text-gray-300">预算广告位ID: {{ budget.dspSlotCode || budget.dspSlotId }}</span>
+                        <span class="text-gray-300">预算方广告位ID: {{ budget.dspSlotCode || budget.dspSlotId }}</span>
                         <span class="text-gray-400">|</span>
                         <span class="text-gray-300">操作系统: {{ getDictLabel(osTypeOptions, budget.osType) }}</span>
                         <span class="text-gray-400">|</span>
@@ -1029,11 +1022,10 @@ onMounted(() => {
                     >
                       <span class="text-white text-sm font-medium">删除</span>
                     </div>
-                  </div>
-
-                  <!-- 无预算时的提示 -->
+                    </div>
+                  </template>
                   <div
-                    v-if="group.budgets.length === 0"
+                    v-if="group.budgets.filter(b => !b._deleted).length === 0"
                     class="py-4 text-center text-gray-400"
                   >
                     暂无绑定预算
@@ -1078,7 +1070,7 @@ onMounted(() => {
         <!-- 产品下拉框 -->
         <a-select
           v-model:value="bindSearchProductId"
-          placeholder="预酸产品名称"
+          placeholder="预算产品名称"
           class="flex-1"
           show-search
           :options="productOptions"
