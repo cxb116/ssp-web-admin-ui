@@ -7,7 +7,6 @@ import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { message } from 'ant-design-vue';
@@ -52,7 +51,7 @@ async function fetchAllDataSum(formValues: Record<string, any>) {
     pageSize: 1000,
   };
   for (const key of Object.keys(formValues)) {
-    if (key === 'sspSlotId') continue;
+    if (key === 'sspSlotId' || key === 'dspSlotCode') continue;
     if (!formValues[key]) continue;
     params[key] = formValues[key];
   }
@@ -62,6 +61,9 @@ async function fetchAllDataSum(formValues: Record<string, any>) {
   };
   if (formValues.sspSlotId) {
     params.sspSlotId = splitStr(formValues.sspSlotId);
+  }
+  if (formValues.dspSlotCode) {
+    params.dspSlotCodes = splitStr(formValues.dspSlotCode);
   }
   try {
     const res = await getDspSlotDayPage(params);
@@ -101,14 +103,16 @@ function getExpandedDetails(row: DataDspSlotDayApi.DspSlotDay) {
 /** 展开列表行时加载子表数据 */
 async function handleExpandChange(row: DataDspSlotDayApi.DspSlotDay, expanded: boolean) {
   if (expanded) {
+    // 互斥展开：收起其它已展开的行，只保留当前行
+    gridApi.grid.clearRowExpand();
+    gridApi.grid.setRowExpand(row, true);
+
+    clearDetailMap();
     expandedRowIds.add(row.id!);
   } else {
     expandedRowIds.delete(row.id!);
-  }
-  if (!expanded) {
     return;
   }
-  delete detailMap[row.id!];
   const result = await getSSPDspSlotDay({
     date: row.date,
     dspSlotId: row.dspSlotId,
@@ -193,20 +197,19 @@ const [Grid, gridApi] = useVbenVxeGrid({
       pageSize: 10,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
-      sort: true,
+      sort: false,
       ajax: {
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
-            if (key === 'sspSlotId') continue;
+            if (key === 'sspSlotId' || key === 'dspSlotCode') continue;
             if (!formValues[key]) continue;
             params[key] = formValues[key];
           }
@@ -217,6 +220,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
           };
           if (formValues.sspSlotId) {
             params.sspSlotId = splitStr(formValues.sspSlotId);
+          }
+          if (formValues.dspSlotCode) {
+            params.dspSlotCodes = splitStr(formValues.dspSlotCode);
           }
           // 并行加载分页数据和全量总和，确保 footer 渲染前数据就绪
           const [result] = await Promise.all([
@@ -244,8 +250,8 @@ const [Grid, gridApi] = useVbenVxeGrid({
       const sums: any[] = [];
       columns.forEach((col, colIndex) => {
         const field = col.field;
-        if (field === 'dspName') {
-          sums[colIndex] = '总和';
+        if (field === 'date') {
+          sums[colIndex] = '合计';
           return;
         }
         if (allDataSum.value[field] !== undefined) {

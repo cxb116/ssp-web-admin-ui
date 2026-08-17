@@ -7,7 +7,6 @@ import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { message } from 'ant-design-vue';
@@ -88,14 +87,19 @@ function getExpandedDetails(row: DataSspSlotDayApi.SspSlotDay) {
 /** 点击主表展开，加载预算广告位日报子表 */
 async function handleExpandChange(row: DataSspSlotDayApi.SspSlotDay, expanded: boolean) {
   if (expanded) {
+    // 互斥展开：收起其它已展开的行，只保留当前行
+    gridApi.grid.clearRowExpand();
+    gridApi.grid.setRowExpand(row, true);
+
+    expandedRowIds.clear();
     expandedRowIds.add(row.id!);
+
+    // 清理其它行的子表数据
+    clearDetailMap();
   } else {
     expandedRowIds.delete(row.id!);
-  }
-  if (!expanded) {
     return;
   }
-  delete detailMap[row.id!];
   // 主表字段：date + sspSlotId（后端 /data/dsp-slot-day/dsp_ssp_day）
   const result = await getSlotInfoPageSsp({
     date: row.date,
@@ -170,7 +174,7 @@ const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fil
 async function fetchAllDataSum(formValues: Record<string, any>) {
   const params: Record<string, any> = {
     pageNo: 1,
-    pageSize: 4000,
+    pageSize: 1000,
   };
   for (const key of Object.keys(formValues)) {
     if (key === 'sspSlotId' || key === 'dspSlotId') continue;
@@ -221,16 +225,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
       pageSize: 10,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
       ajax: {
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
             if (key === 'sspSlotId' || key === 'dspSlotId') continue;
@@ -256,7 +259,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
           return result;
         },
       },
-      sort: true,
+      sort: false,
     },
     rowConfig: {
       keyField: 'id',
@@ -276,7 +279,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
       columns.forEach((col, colIndex) => {
         const field = col.field;
         if (field === 'date') {
-          sums[colIndex] = '总和';
+          sums[colIndex] = '合计';
           return;
         }
         if (allDataSum.value[field] !== undefined) {

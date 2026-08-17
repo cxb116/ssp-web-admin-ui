@@ -6,7 +6,6 @@ import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 
 import { message } from 'ant-design-vue';
 
@@ -80,14 +79,16 @@ async function handleExpandChange(
   expanded: boolean,
 ) {
   if (expanded) {
+    // 互斥展开：收起其它已展开的行，只保留当前行
+    gridApi.grid.clearRowExpand();
+    gridApi.grid.setRowExpand(row, true);
+
+    clearDetailMap();
     expandedRowIds.add(row.id!);
   } else {
     expandedRowIds.delete(row.id!);
-  }
-  if (!expanded) {
     return;
   }
-  delete detailMap[row.id!];
   // 主表字段：date + sspSlotId
   const result = await getSSPDspSlotHour({
     date: row.date,
@@ -157,7 +158,7 @@ const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fil
 async function fetchAllDataSum(formValues: Record<string, any>) {
   const params: Record<string, any> = {
     pageNo: 1,
-    pageSize: 4000,
+    pageSize: 1000,
   };
   for (const key of Object.keys(formValues)) {
     if (key === 'date' || key === 'sspSlotId' || key === 'dspSlotId') continue;
@@ -218,18 +219,17 @@ const [Grid, gridApi] = useVbenVxeGrid({
       pageSize: 10,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
-      sort: true,
+      sort: false,
       ajax: {
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           clearDetailMap();
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
             if (key === 'date' || key === 'sspSlotId' || key === 'dspSlotId') continue;
@@ -284,7 +284,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
       columns.forEach((col, colIndex) => {
         const field = col.field;
         if (field === 'date') {
-          sums[colIndex] = '总和';
+          sums[colIndex] = '合计';
           return;
         }
         if (allDataSum.value[field] !== undefined) {

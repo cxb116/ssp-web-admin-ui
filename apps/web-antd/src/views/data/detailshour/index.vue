@@ -5,7 +5,6 @@ import type { DataDspSlotHourApi } from '#/api/data/dspslothour';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getDspSlotHourPage } from '#/api/data/dspslothour';
@@ -93,21 +92,20 @@ const [Grid, gridApi] = useVbenVxeGrid({
     height: 'auto',
     keepSource: true,
     pagerConfig: {
-      pageSize: 10,
+      pageSize: 1000,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
-      sort: true,
+      sort: false,
       ajax: {
         // 小时报表主表：getDspSlotHourPage
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
             if (key === 'date' || key === 'sspSlotId') continue;

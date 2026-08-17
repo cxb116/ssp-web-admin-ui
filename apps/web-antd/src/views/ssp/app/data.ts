@@ -118,14 +118,14 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体简称',
+      label: '媒体简称/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getMediaSimpleList,
         valueField: 'id',
         labelFn: (item: any) => `${item.mediaCompanyShort}（${item.id}）`,
-        placeholder: '请选择媒体',
+        placeholder: '请选择媒体简称',
         showSearch: true,
         filterOption: (input: string, option: any) => {
           return (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
@@ -134,7 +134,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'name',
-      label: '应用名称',
+      label: '应用名称/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,

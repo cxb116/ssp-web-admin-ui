@@ -26,7 +26,7 @@ async function getMediaOptions() {
 async function getAppOptions(params: { mediaId?: number }) {
   const res = await getAppPage({
     pageNo: 1,
-    pageSize: 1000,
+    pageSize: 500,
     mediaId: params.mediaId,
   });
   return (res.list || []).map((app: SspAppApi.App) => ({
@@ -275,7 +275,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体简称',
+      label: '媒体简称/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
@@ -290,28 +290,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'osType',
-      label: '操作系统',
-      component: 'Select',
-      componentProps: {
-        allowClear: true,
-        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
-        placeholder: '请选择操作系统',
-      },
-    },
-    {
-      fieldName: 'adScene',
-      label: '广告场景',
-      component: 'Select',
-      componentProps: {
-        allowClear: true,
-        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
-        placeholder: '请选择广告场景',
-      },
-    },
-    {
       fieldName: 'appId',
-      label: '应用名称',
+      label: '应用名称/ID',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
@@ -327,7 +307,8 @@ export function useGridFormSchema(): VbenFormSchema[] {
         },
       },
     },
-    {
+
+     {
       fieldName: 'sspName',
       label: '媒体广告位名称',
       component: 'ApiSelect',
@@ -353,6 +334,28 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '多个用空格分隔',
       },
     },
+    {
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
+      },
+    },
+    {
+      fieldName: 'adScene',
+      label: '广告场景',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_AD_SCENE, 'number'),
+        placeholder: '请选择广告场景',
+      },
+    },
+    
+   
     // {
     //   fieldName: 'dspSlotId',
     //   label: '预算广告ID',
@@ -410,7 +413,6 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       title: '日期',
       minWidth: 100,
       align: 'left',
-      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -513,6 +515,7 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       field: 'fillRate',
       title: '填充率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -522,6 +525,7 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       field: 'displayRate',
       title: '展现率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -531,6 +535,7 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       field: 'clickRate',
       title: '点击率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -576,21 +581,25 @@ export function useGridColumns(): VxeTableGridOptions<DataSspSlotDayApi.SspSlotD
       field: 'mediaEcpm',
       title: '媒体ecpm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecpm',
       title: 'ecpm',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'mediaEcprm',
       title: '媒体ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecprm',
       title: 'ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'spend',

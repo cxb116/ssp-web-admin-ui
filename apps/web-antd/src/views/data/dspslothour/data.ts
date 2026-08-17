@@ -20,7 +20,7 @@ import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
 async function getProductOptions(params: { companyId?: number }) {
   const res = await getProductPage({
     pageNo: 1,
-    pageSize: 1000,
+    pageSize: 500,
     companyId: params.companyId,
   });
   return (res.list || []).map((product: DspProductApi.Product) => ({
@@ -30,7 +30,7 @@ async function getProductOptions(params: { companyId?: number }) {
 }
 
 async function getCompanyOptions() {
-  const res = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
+  const res = await getCompanyPage({ pageNo: 1, pageSize: 100 });
   return (res.list || []).map((company: DspCompanyApi.Company) => ({
     label: `${company.name || ''}(${company.id})`,
     value: company.id,
@@ -40,7 +40,7 @@ async function getCompanyOptions() {
 async function getDspSlotOptions() {
   const res = await getSlotInfoPage({ pageNo: 1, pageSize: 1000 });
   return (res.list || []).map((slot: DspSlotInfoApi.SlotInfo) => ({
-    label: `${slot.name || ''}/${slot.id}`,
+    label: `${slot.name || ''}(${slot.id})`,
     value: slot.id,
   }));
 }
@@ -265,16 +265,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'osType',
-      label: '操作系统',
-      component: 'Select',
-      componentProps: {
-        allowClear: true,
-        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
-        placeholder: '请选择操作系统',
-      },
-    },
-    {
       fieldName: 'productId',
       label: '预算产品名称',
       component: 'ApiSelect',
@@ -318,6 +308,17 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '多个用空格分隔',
       },
     },
+    {
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
+      },
+    },
+    
     // {
     //   fieldName: 'sspSlotId',
     //   label: '媒体方广告位ID',
@@ -400,7 +401,6 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       title: '时间',
       minWidth: 70,
       align: 'left',
-      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -425,6 +425,11 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'dspName',
       title: '预算位名称',
       minWidth: 200,
+    },
+    {
+      field: 'dspSlotId',
+      title: '预算位ID',
+      minWidth: 100,
     },
     {
       field: 'dspSlotCode',
@@ -470,6 +475,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'fillRate',
       title: '填充率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -479,6 +485,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'displayRate',
       title: '展现率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -488,6 +495,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'clickRate',
       title: '点击率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -533,21 +541,25 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'mediaEcpm',
       title: '媒体ecpm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecpm',
       title: 'ecpm',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'mediaEcprm',
       title: '媒体ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecprm',
       title: 'ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'spend',

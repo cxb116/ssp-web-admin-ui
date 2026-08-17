@@ -5,7 +5,6 @@ import type { DataDspSlotDayApi } from '#/api/data/dspslotday';
 import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
@@ -105,17 +104,16 @@ const [Grid, gridApi] = useVbenVxeGrid({
       pageSize: 10,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
-      sort: true,
+      sort: false,
       ajax: {
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
             if (key === 'sspSlotId') continue;

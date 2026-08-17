@@ -10,7 +10,7 @@ import { getDictOptions } from '@vben/hooks';
 
 import { DICT_TYPE } from '@vben/constants';
 
-import { getSlotInfo, updateSlotInfo, createSlotInfo } from '#/api/dsp/dspslotinfo';
+import { getSlotInfo, getSlotInfoPage, updateSlotInfo, createSlotInfo } from '#/api/dsp/dspslotinfo';
 import { getProduct, getProductPage } from '#/api/dsp/product';
 import { getCompanyPage } from '#/api/dsp/company';
 import { getLaunchDspSlotIdQuery, createLaunch, updateLaunch, deleteLaunch } from '#/api/dsp/launch';
@@ -165,8 +165,8 @@ async function loadBindSearchOptions() {
   try {
     const [mediaList, appRes, slotRes] = await Promise.all([
       getMediaSimpleList(),
-      getAppPage({ pageNo: 1, pageSize: 1000 }),
-      getSspSlotInfoPage({ pageNo: 1, pageSize: 1000 }),
+      getAppPage({ pageNo: 1, pageSize: 100 }),
+      getSspSlotInfoPage({ pageNo: 1, pageSize: 500 }),
     ]);
     // 媒体简称
     bindMediaOptions.value = (mediaList || []).map((m: any) => ({
@@ -368,7 +368,7 @@ function handleHourMouseUp() {
 onMounted(async () => {
   loading.value = true;
   try {
-    const companyRes = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
+    const companyRes = await getCompanyPage({ pageNo: 1, pageSize: 100 });
     companyOptions.value = (companyRes.list || []).map((c: any) => ({
       label: `${c.name || ''}(${c.id})`,
       value: c.id,
@@ -379,7 +379,7 @@ onMounted(async () => {
       // 编辑场景：按已有 companyId 加载产品列表
       if (res?.companyId) {
         try {
-          const productRes = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: res.companyId });
+          const productRes = await getProductPage({ pageNo: 1, pageSize: 100, companyId: res.companyId });
           productOptions.value = (productRes.list || []).map((p: any) => ({
             label: `${p.name || ''}(${p.id})`,
             value: p.id,
@@ -401,7 +401,7 @@ onMounted(async () => {
         slotInfo.value = rest;
         if (rest?.companyId) {
           try {
-            const productRes = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: rest.companyId });
+            const productRes = await getProductPage({ pageNo: 1, pageSize: 100, companyId: rest.companyId });
             productOptions.value = (productRes.list || []).map((p: any) => ({
               label: `${p.name || ''}(${p.id})`,
               value: p.id,
@@ -483,7 +483,7 @@ const [BaseForm, formApi] = useVbenForm({
           return;
         }
         try {
-          const res = await getProductPage({ pageNo: 1, pageSize: 1000, companyId: value });
+          const res = await getProductPage({ pageNo: 1, pageSize: 500, companyId: value });
           productOptions.value = (res.list || []).map((p: any) => ({
             label: `${p.name || ''}(${p.id})`,
             value: p.id,
@@ -614,11 +614,47 @@ const [BaseForm, formApi] = useVbenForm({
 // 记录原始 launchId，用于保存时识别需要删除的旧绑定
 const originalLaunchIds = ref<number[]>([]);
 
+async function checkUnique(formData: any) {
+  const name = (formData.name ?? '').trim();
+  const dspSlotCode = (formData.dspSlotCode ?? '').trim();
+
+  if (dspSlotCode) {
+    const codeRes = await getSlotInfoPage({
+      pageNo: 1,
+      pageSize: 10,
+      dspSlotCode: [dspSlotCode],
+    });
+    if ((codeRes.list ?? []).length > 0) {
+      message.error('预算方广告位ID已存在，无法重复添加');
+      return false;
+    }
+  }
+
+  if (name) {
+    const nameRes = await getSlotInfoPage({
+      pageNo: 1,
+      pageSize: 100,
+      name,
+    });
+    if ((nameRes.list ?? []).some((item: any) => item.name === name)) {
+      message.error('预算位名称已存在，无法重复添加');
+      return false;
+    }
+  }
+
+  return true;
+}
+
 async function handleSave() {
   const { valid } = await formApi.validate();
   if (!valid) return;
 
   const formData = await formApi.getValues();
+
+  // 新增时校验预算位名称、预算方广告位ID 不可重复
+  if (!id.value && !(await checkUnique(formData))) {
+    return;
+  }
 
   try {
     if (id.value) {

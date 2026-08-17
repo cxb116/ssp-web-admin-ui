@@ -7,7 +7,6 @@ import { reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
-import { buildSortingField } from '@vben/request';
 
 import { message } from 'ant-design-vue';
 
@@ -74,7 +73,7 @@ async function fetchAllDataSum(formValues: Record<string, any>) {
     pageSize: 1000,
   };
   for (const key of Object.keys(formValues)) {
-    if (key === 'sspSlotId') continue;
+    if (key === 'sspSlotId' || key === 'dspSlotCode') continue;
     if (!formValues[key]) continue;
     params[key] = formValues[key];
   }
@@ -82,6 +81,12 @@ async function fetchAllDataSum(formValues: Record<string, any>) {
     const val = String(formValues.sspSlotId).trim();
     if (val) {
       params.sspSlotId = val.split(/\s+/).map(Number).filter((n: number) => !isNaN(n));
+    }
+  }
+  if (formValues.dspSlotCode) {
+    const val = String(formValues.dspSlotCode).trim();
+    if (val) {
+      params.dspSlotCodes = val.split(/\s+/);
     }
   }
   if (formValues.date) {
@@ -134,14 +139,16 @@ async function handleExpandChange(
   expanded: boolean,
 ) {
   if (expanded) {
+    // 互斥展开：收起其它已展开的行，只保留当前行
+    gridApi.grid.clearRowExpand();
+    gridApi.grid.setRowExpand(row, true);
+
+    clearDetailMap();
     expandedRowIds.add(row.id!);
   } else {
     expandedRowIds.delete(row.id!);
-  }
-  if (!expanded) {
     return;
   }
-  delete detailMap[row.id!];
   const result = await getSSPDspSlotHour({
     date: row.date,
     dspSlotId: row.dspSlotId,
@@ -217,22 +224,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       pageSize: 10,
     },
     sortConfig: {
-      remote: true,
+      remote: false,
       multiple: false,
     },
     proxyConfig: {
-      sort: true,
+      sort: false,
       ajax: {
         // 小时报表主表：getDspSlotHourPage
-        query: async ({ page, sorts }, formValues) => {
+        query: async ({ page }, formValues) => {
           clearDetailMap();
           const params: Record<string, any> = {
             pageNo: page.currentPage,
             pageSize: page.pageSize,
-            ...buildSortingField(sorts),
           };
           for (const key of Object.keys(formValues)) {
-            if (key === 'date' || key === 'sspSlotId') continue;
+            if (key === 'date' || key === 'sspSlotId' || key === 'dspSlotCode') continue;
             if (!formValues[key]) continue;
             params[key] = formValues[key];
           }
@@ -241,6 +247,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
             const val = String(formValues.sspSlotId).trim();
             if (val) {
               params.sspSlotId = val.split(/\s+/).map(Number).filter((n: number) => !isNaN(n));
+            }
+          }
+          // dspSlotCode：空格分隔字符串转为数组
+          if (formValues.dspSlotCode) {
+            const val = String(formValues.dspSlotCode).trim();
+            if (val) {
+              params.dspSlotCodes = val.split(/\s+/);
             }
           }
           // date：8位=全天(YYYYMMDD)，10位=指定小时(YYYYMMDDHH)
@@ -271,7 +284,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
       columns.forEach((col, colIndex) => {
         const field = col.field;
         if (field === 'date') {
-          sums[colIndex] = '总和';
+          sums[colIndex] = '合计';
           return;
         }
         if (allDataSum.value[field] !== undefined) {

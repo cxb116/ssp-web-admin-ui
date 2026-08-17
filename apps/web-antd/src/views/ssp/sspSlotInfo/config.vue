@@ -80,6 +80,9 @@ interface BudgetInfo {
 }
 
 const trafficGroups = ref<TrafficGroupData[]>([]);
+// 【修复】记录被整体删除的流量组内预算广告位已有的 launchId，保存时统一调用 deleteLaunch，
+// 避免 splice 丢弃组后导致数据库残留孤儿 dspLaunch 记录。
+const pendingDeleteLaunchIds = ref<number[]>([]);
 
 function initTrafficGroups() {
   if (trafficGroups.value.length === 0) {
@@ -278,6 +281,15 @@ function handleDeleteGroup(index: number) {
     message.error('至少保留一个流量组');
     return;
   }
+  // 【修复】删除整个流量组时，先把组内预算广告位已持久化的 launchId 收集到待删除列表，
+  // 再移除该组。否则 splice 丢弃组后，这些 launchId 丢失，保存时不会调用 deleteLaunch，
+  // 导致数据库中残留未被删除的 dspLaunch 记录。
+  const group = trafficGroups.value[index];
+  for (const budget of group.budgets) {
+    if (budget.launchId && budget.launchId > 0) {
+      pendingDeleteLaunchIds.value.push(budget.launchId);
+    }
+  }
   trafficGroups.value.splice(index, 1);
 }
 
@@ -395,7 +407,7 @@ async function loadProductOptions(keyword?: string) {
 // 加载预算位名称和ID下拉数据
 async function loadBindSearchOptions() {
   try {
-    const params: any = { pageNo: 1, pageSize: 1000 };
+    const params: any = { pageNo: 1, pageSize: 500 };
     const result = await getSlotInfoPage(params);
     const nameSeen = new Set<string>();
     const codeSeen = new Set<string>();
@@ -430,7 +442,7 @@ async function loadBindBudgetList() {
   try {
     const params: any = {
       pageNo: 1,
-      pageSize: 1000,
+      pageSize: 500,
     };
     if (slotInfo.value) {
       params.osType = slotInfo.value.osType;
@@ -691,14 +703,24 @@ async function handleSave() {
       });
     }
 
+    // 【修复】删除被整体删除的流量组内预算广告位对应的 launch 记录
+    for (const launchId of pendingDeleteLaunchIds.value) {
+      await deleteLaunch(launchId);
+    }
+    pendingDeleteLaunchIds.value = [];
+
     // 为每个流量组的每个预算广告位处理 dspLaunch 记录
-    const promises: Promise<any>[] = [];
-    trafficGroups.value.forEach((group, gi) => {
+    // 【修复】原实现用 Promise.all 并发处理，且 createLaunch 成功后没有把返回的 id 回填到 budget.launchId。
+    // 导致第二次保存（例如仅修改某流量组的权重）时，该预算广告位的 launchId 仍为 0，再次走 createLaunch
+    // 重复创建一条记录，而旧记录也因 launchId 缺失永远无法被 update/delete。
+    // 现改为串行处理，并在创建成功后回填 launchId，保证后续保存走 update 分支。
+    for (let gi = 0; gi < trafficGroups.value.length; gi++) {
+      const group = trafficGroups.value[gi];
       const trafficGroup = gi + 1;
-      group.budgets.forEach((budget) => {
+      for (const budget of group.budgets) {
         if (budget._deleted && budget.launchId && budget.launchId > 0) {
           // 标记删除的，调删除接口
-          promises.push(deleteLaunch(budget.launchId));
+          await deleteLaunch(budget.launchId);
         } else if (!budget._deleted && budget.dspSlotId > 0) {
           const launchData = {
             id: budget.launchId || 0,
@@ -718,16 +740,16 @@ async function handleSave() {
           };
 
           if (budget.launchId && budget.launchId > 0) {
-            promises.push(updateLaunch(launchData as any));
+            await updateLaunch(launchData as any);
           } else {
-            promises.push(createLaunch(launchData as any));
+            // 创建成功后把返回的新 id 回填到 budget.launchId，避免下次保存重复创建
+            const newId = await createLaunch(launchData as any);
+            if (newId) {
+              budget.launchId = newId;
+            }
           }
         }
-      });
-    });
-
-    if (promises.length > 0) {
-      await Promise.all(promises);
+      }
     }
 
     message.success('保存成功');

@@ -269,25 +269,25 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'companyId',
-      label: '公司名称',
+      label: '预算公司名称',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getCompanyOptions,
-        placeholder: '请选择公司名称',
+        placeholder: '请选择预算公司名称',
         showSearch: true,
         filterOption: false,
       },
     },
     {
       fieldName: 'productId',
-      label: '产品名称',
+      label: '预算产品名称',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
         allowClear: true,
         api: getProductOptions,
-        placeholder: '请选择产品名称',
+        placeholder: '请选择预算产品名称',
         showSearch: true,
         filterOption: false,
       },
@@ -303,7 +303,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'id',
-      label: '预算位ID',
+      label: '预算位名称/ID',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
@@ -318,19 +318,19 @@ export function useGridFormSchema(): VbenFormSchema[] {
         },
       },
     },
-    {
-      fieldName: 'name',
-      label: '预算位名称',
-      component: 'ApiSelect',
-      componentProps: {
-        mode: 'multiple',
-        allowClear: true,
-        api: getSlotNameOptions,
-        placeholder: '请选择预算位名称',
-        showSearch: true,
-        filterOption: false,
-      },
-    },
+    // {
+    //   fieldName: 'name',
+    //   label: '预算位名称',
+    //   component: 'ApiSelect',
+    //   componentProps: {
+    //     mode: 'multiple',
+    //     allowClear: true,
+    //     api: getSlotNameOptions,
+    //     placeholder: '请选择预算位名称',
+    //     showSearch: true,
+    //     filterOption: false,
+    //   },
+    // },
     {
       fieldName: 'osType',
       label: '操作系统',

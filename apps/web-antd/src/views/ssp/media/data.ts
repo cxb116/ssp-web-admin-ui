@@ -141,7 +141,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaCompanyShort',
-      label: '媒体简称',
+      label: '媒体简称/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
@@ -157,7 +157,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'account',
-      label: '媒体账号',
+      label: '媒体账号/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,

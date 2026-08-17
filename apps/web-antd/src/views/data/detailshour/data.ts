@@ -20,7 +20,7 @@ import { getSlotInfoPage } from '#/api/dsp/dspslotinfo';
 async function getProductOptions(params: { companyId?: number }) {
   const res = await getProductPage({
     pageNo: 1,
-    pageSize: 1000,
+    pageSize: 500,
     companyId: params.companyId,
   });
   return (res.list || []).map((product: DspProductApi.Product) => ({
@@ -30,7 +30,7 @@ async function getProductOptions(params: { companyId?: number }) {
 }
 
 async function getCompanyOptions() {
-  const res = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
+  const res = await getCompanyPage({ pageNo: 1, pageSize: 100 });
   return (res.list || []).map((company: DspCompanyApi.Company) => ({
     label: `${company.name || ''}(${company.id})`,
     value: company.id,
@@ -190,7 +190,6 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'date',
       title: '时间',
       minWidth: 70,
-      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -298,6 +297,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'fillRate',
       title: '填充率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -307,6 +307,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'displayRate',
       title: '展现率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -316,6 +317,7 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'clickRate',
       title: '点击率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -361,21 +363,25 @@ export function useGridColumns(): VxeTableGridOptions<any>['columns'] {
       field: 'mediaEcpm',
       title: '媒体ecpm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecpm',
       title: 'ecpm',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'mediaEcprm',
       title: '媒体ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecprm',
       title: 'ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'spend',

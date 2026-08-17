@@ -76,12 +76,12 @@ export function useFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'mediaId',
-      label: '媒体名称',
+      label: '媒体简称',
       rules: 'required',
       component: 'ApiSelect',
       componentProps: {
         api: getMediaOptions,
-        placeholder: '请选择媒体名称',
+        placeholder: '请选择媒体简称',
       },
     },
     {
@@ -219,17 +219,17 @@ export function useGridFormSchema(): VbenFormSchema[] {
   return [
     {
       fieldName: 'mediaId',
-      label: '媒体名称',
+      label: '媒体简称/ID',
       component: 'ApiSelect',
       componentProps: {
         allowClear: true,
         api: getMediaOptions,
-        placeholder: '请选择媒体名称',
+        placeholder: '请选择媒体简称',
       },
     },
     {
       fieldName: 'appId',
-      label: '应用名称',
+      label: '应用名称/ID',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
@@ -365,7 +365,7 @@ export function useGridColumns(): VxeTableGridOptions<SspSlotInfoApi.SlotInfo>['
     },
     {
       field: 'mediaName',
-      title: '媒体名称',
+      title: '媒体简称',
       minWidth: 150,
       align: 'center',
       slots: {

@@ -12,7 +12,7 @@ import { getProductPage } from '#/api/dsp/product';
 async function getCompanyOptions() {
   const res = await getCompanyPage({ pageNo: 1, pageSize: 1000 });
   return (res.list || []).map((company: DspCompanyApi.Company) => ({
-    label: company.name || '',
+    label: `${company.name || ''}(${company.id})`,
     value: company.id,
   }));
 }
@@ -24,7 +24,7 @@ async function getProductNameOptions() {
   (res.list || []).forEach((product: DspProductApi.Product) => {
     if (product.name && !seen.has(product.name)) {
       seen.add(product.name);
-      options.push({ label: product.name, value: product.name });
+      options.push({ label: `${product.name}(${product.id})`, value: product.name });
     }
   });
   return options;

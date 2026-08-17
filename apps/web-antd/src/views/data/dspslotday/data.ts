@@ -262,16 +262,6 @@ export function useGridFormSchema(): VbenFormSchema[] {
       },
     },
     {
-      fieldName: 'osType',
-      label: '操作系统',
-      component: 'Select',
-      componentProps: {
-        allowClear: true,
-        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
-        placeholder: '请选择操作系统',
-      },
-    },
-    {
       fieldName: 'productId',
       label: '预算产品名称',
       component: 'ApiSelect',
@@ -291,7 +281,7 @@ export function useGridFormSchema(): VbenFormSchema[] {
     },
     {
       fieldName: 'dspSlotId',
-      label: '预算位名称',
+      label: '预算位名称/ID',
       component: 'ApiSelect',
       componentProps: {
         mode: 'multiple',
@@ -315,6 +305,18 @@ export function useGridFormSchema(): VbenFormSchema[] {
         placeholder: '多个用空格分隔',
       },
     },
+    {
+      fieldName: 'osType',
+      label: '操作系统',
+      component: 'Select',
+      componentProps: {
+        allowClear: true,
+        options: getDictOptions(DICT_TYPE.SSP_OS_TYPE, 'number'),
+        placeholder: '请选择操作系统',
+      },
+    },
+    
+    
     // {
     //   fieldName: 'dspSlotId',
     //   label: '预算位ID',
@@ -384,7 +386,6 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       title: '日期',
       minWidth: 110,
       align: 'left',
-      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -409,6 +410,12 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       slots: {
         default: 'dspName-slot',
       },
+    },
+    {
+      field: 'dspSlotId',
+      title: '预算位ID',
+      minWidth: 100,
+      align: 'left',
     },
     {
       field: 'dspSlotCode',
@@ -480,6 +487,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       field: 'fillRate',
       title: '填充率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -489,6 +497,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       field: 'displayRate',
       title: '展现率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -498,6 +507,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       field: 'clickRate',
       title: '点击率',
       minWidth: 110,
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (cellValue == null || cellValue === '') return '';
         return `${cellValue}%`;
@@ -543,21 +553,25 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       field: 'mediaEcpm',
       title: '媒体ecpm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecpm',
       title: 'ecpm',
       minWidth: 120,
+      sortable: true,
     },
     {
       field: 'mediaEcprm',
       title: '媒体ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'ecprm',
       title: 'ecprm',
       minWidth: 130,
+      sortable: true,
     },
     {
       field: 'spend',
