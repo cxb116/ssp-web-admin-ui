@@ -179,7 +179,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'createdAt',
       label: '创建时间戳',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入创建时间戳',
@@ -188,7 +187,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'discountClickPv',
       label: '折后点击',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入折后点击',
@@ -197,7 +195,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'discountShowPv',
       label: '折后展示',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入折后展示',
@@ -206,7 +203,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'dplsuccPv',
       label: '调起成功',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入调起成功',
@@ -215,7 +211,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'completePv',
       label: '完成量',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入完成量',
@@ -224,7 +219,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'installPv',
       label: '安装量',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入安装量',
@@ -233,7 +227,6 @@ export function useFormSchema(): VbenFormSchema[] {
     {
       fieldName: 'activatePv',
       label: '激活量',
-      rules: 'required',
       component: 'Input',
       componentProps: {
         placeholder: '请输入激活量',

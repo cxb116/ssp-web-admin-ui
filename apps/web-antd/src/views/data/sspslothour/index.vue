@@ -7,13 +7,13 @@ import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
-import { message } from 'ant-design-vue';
-
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
 import {
   getSspSlotHourPage,
   getSSPDspSlotHour,
 } from '#/api/data/sspslothour';
+
+import ChartReport from '../sspslotday/modules/chart-report.vue';
 
 import { useGridColumns, useGridFormSchema } from './data';
 
@@ -56,6 +56,11 @@ function getInitialFormValues() {
 }
 
 const initialFormValues = getInitialFormValues();
+
+/** 是否显示折线图（覆盖表格区域） */
+const showChart = ref(false);
+/** 折线图检索条件 */
+const chartFilterQuery = ref<Record<string, any>>({});
 
 const detailMap = reactive<Record<number, DataSspSlotHourApi.SspSlotHour[]>>({});
 
@@ -140,8 +145,10 @@ function handleHourReport() {
   // 已在小时报表页
 }
 
-function handleChartReport() {
-  message.info('折线报表功能开发中');
+/** 打开折线报表（覆盖表格区域，传入当前检索条件） */
+async function handleChartReport() {
+  chartFilterQuery.value = await getFilterQuery();
+  showChart.value = true;
 }
 
 function handleSspSlotIdClick(row: DataSspSlotHourApi.SspSlotHour) {
@@ -312,7 +319,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
 
 <template>
   <Page auto-content-height>
-    <Grid>
+    <ChartReport
+      v-if="showChart"
+      :filter-query="chartFilterQuery"
+      context="hour"
+      @back="showChart = false"
+    />
+    <Grid v-else>
       <template #toolbar-actions>
         <div class="flex items-center gap-3">
           <div class="text-[1rem] font-bold">媒体广告位报表</div>

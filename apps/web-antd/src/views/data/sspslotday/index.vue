@@ -9,8 +9,6 @@ import { useRoute, useRouter } from 'vue-router';
 import { Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
-import { message } from 'ant-design-vue';
-
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
 import { getSlotInfoPageSsp } from '#/api/data/dspslotday';
 import {
@@ -20,11 +18,17 @@ import {
 
 import { useGridColumns, useGridFormSchema } from './data';
 import Form from './modules/form.vue';
+import ChartReport from './modules/chart-report.vue';
 
 const [FormModal] = useVbenModal({
   connectedComponent: Form,
   destroyOnClose: true,
 });
+
+/** 是否显示折线图（覆盖表格区域） */
+const showChart = ref(false);
+/** 折线图检索条件 */
+const chartFilterQuery = ref<Record<string, any>>({});
 
 const route = useRoute();
 const router = useRouter();
@@ -154,9 +158,10 @@ async function handleHourReport() {
   });
 }
 
-/** 跳转折线报表 */
-function handleChartReport() {
-  message.info('折线报表功能开发中');
+/** 打开折线报表（覆盖表格区域，传入当前检索条件） */
+async function handleChartReport() {
+  chartFilterQuery.value = await getFilterQuery();
+  showChart.value = true;
 }
 
 function handleSspSlotIdClick(row: DataSspSlotDayApi.SspSlotDay) {
@@ -308,7 +313,12 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
-    <Grid>
+    <ChartReport
+      v-if="showChart"
+      :filter-query="chartFilterQuery"
+      @back="showChart = false"
+    />
+    <Grid v-else>
       <template #sspSlotId-slot="{ row }">
         <span style="cursor: pointer; color: #1890ff" @click="handleSspSlotIdClick(row)">
           {{ row.sspSlotId }}

@@ -44,6 +44,24 @@ export namespace DataSspSlotHourApi {
     ecprm?: number; // ecprm
     mediaEcprm?: number; // 媒体ecprm
   }
+
+  /** 小时报表折线图数据点（单天0~23点按小时聚合） */
+  export interface SspSlotHourTrend {
+    hour: number; // 小时 0~23
+    reqPv: number; // 请求数
+    retPv: number; // 返回PV
+    showPv: number; // 展示PV
+    clickPv: number; // 点击PV
+    fillRate: number; // 填充率
+    displayRate: number; // 展现率
+    clickRate: number; // 点击率
+    ecpm: number; // ecpm
+    mediaEcpm: number; // 媒体ecpm
+    ecprm: number; // ecprm
+    mediaEcprm: number; // 媒体ecprm
+    spend: number; // 成本(分)
+    income: number; // 收入(分)
+  }
 }
 
 /** 查询DSP-SSP广告位报分页 */
@@ -68,6 +86,14 @@ export function getSSPDspSlotHour(params: {
 }) {
   return requestClient.get(
     '/data/dsp-slot-hour/dsp_ssp_hour',
+    { params },
+  );
+}
+
+/** 小时报表折线图（单天0~23点按小时聚合） */
+export function getSspSlotHourTrend(params: any) {
+  return requestClient.get<DataSspSlotHourApi.SspSlotHourTrend[]>(
+    '/data/ssp-slot-hour/trend',
     { params },
   );
 }

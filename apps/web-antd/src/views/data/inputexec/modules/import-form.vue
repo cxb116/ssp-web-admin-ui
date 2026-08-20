@@ -22,6 +22,7 @@ const currentRow = ref<{
   id?: number;
   companyId?: number;
   inputTime?: string;
+  companyName?: string;
 }>({});
 
 const [Modal, modalApi] = useVbenModal({
@@ -33,11 +34,13 @@ const [Modal, modalApi] = useVbenModal({
       id?: number;
       companyId?: number;
       inputTime?: string;
+      companyName?: string;
     }>();
     currentRow.value = {
       id: data?.id,
       companyId: data?.companyId,
       inputTime: data?.inputTime ? String(data.inputTime) : undefined,
+      companyName: data?.companyName,
     };
     fileList.value = [];
     uploadFile.value = null;
@@ -76,6 +79,7 @@ function handleRemove() {
 async function handleDownload() {
   const companyId = currentRow.value.companyId;
   const inputTime = currentRow.value.inputTime;
+  console.log("预算名称:",currentRow.value);
   if (companyId == null || !inputTime) {
     message.warning('缺少公司ID或导入时间，无法下载模板');
     return;
@@ -86,7 +90,7 @@ async function handleDownload() {
       inputTime,
     });
     downloadFileFromBlobPart({
-      fileName: 'DSP数据导入模板.xls',
+      fileName: '预算数据导入模板.xls',
       source: data,
     });
   } catch (error) {

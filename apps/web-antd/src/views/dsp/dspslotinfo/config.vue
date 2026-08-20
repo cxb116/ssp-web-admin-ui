@@ -661,10 +661,11 @@ async function handleSave() {
       // 编辑模式：更新预算位信息
       await updateSlotInfo({ id: id.value, ...formData });
     } else {
-      // 新增模式：先创建预算位
+      // 新增模式：先创建预算位（接口返回的是新纪录 id 数字）
       const createResult = await createSlotInfo(formData);
-      if (createResult && createResult.id) {
-        id.value = createResult.id;
+      const createdId = Number(createResult);
+      if (createdId) {
+        id.value = createdId;
       }
     }
 

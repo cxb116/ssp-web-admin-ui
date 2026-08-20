@@ -94,3 +94,11 @@ export const DspSlotHourApi = {
   exportDspSlotHour,
   exportDspSlotHourDetail,
 };
+
+/** 小时报表折线图（单天0~23点按小时聚合） */
+export function getDspSlotHourTrend(params: any) {
+  return requestClient.get<any[]>(
+    '/data/dsp-slot-hour/trend',
+    { params },
+  );
+}

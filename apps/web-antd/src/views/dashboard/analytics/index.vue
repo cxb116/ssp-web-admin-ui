@@ -1,12 +1,7 @@
 <script lang="ts" setup>
-import type { AnalysisOverviewItem } from '@vben/common-ui';
-import type { TabOption } from '@vben/types';
+import { computed, ref } from 'vue';
 
-import {
-  AnalysisChartCard,
-  AnalysisChartsTabs,
-  AnalysisOverview,
-} from '@vben/common-ui';
+import { AnalysisChartCard } from '@vben/common-ui';
 import {
   SvgBellIcon,
   SvgCakeIcon,
@@ -16,66 +11,63 @@ import {
 
 import AnalyticsTrends from './analytics-trends.vue';
 import AnalyticsVisitsData from './analytics-visits-data.vue';
-import AnalyticsVisitsSales from './analytics-visits-sales.vue';
 import AnalyticsVisitsSource from './analytics-visits-source.vue';
-import AnalyticsVisits from './analytics-visits.vue';
+import AnalyticsVisitsSales from './analytics-visits-sales.vue';
 
-const overviewItems: AnalysisOverviewItem[] = [
+const summary = ref({ showPv: 0, clickPv: 0, income: 0, profit: 0 });
+
+const overviewItems = computed(() => [
   {
     icon: SvgCardIcon,
-    title: '用户量',
-    totalTitle: '总用户量',
-    totalValue: 120_000,
-    value: 2000,
+    title: '广告展现',
+    value: summary.value.showPv,
   },
   {
     icon: SvgCakeIcon,
-    title: '访问量',
-    totalTitle: '总访问量',
-    totalValue: 500_000,
-    value: 20_000,
+    title: '广告点击',
+    value: summary.value.clickPv,
   },
   {
     icon: SvgDownloadIcon,
-    title: '下载量',
-    totalTitle: '总下载量',
-    totalValue: 120_000,
-    value: 8000,
+    title: '预估收益',
+    value: summary.value.income,
   },
   {
     icon: SvgBellIcon,
-    title: '使用量',
-    totalTitle: '总使用量',
-    totalValue: 50_000,
-    value: 5000,
+    title: '利润',
+    value: summary.value.profit,
   },
-];
+]);
 
-const chartTabs: TabOption[] = [
-  {
-    label: '流量趋势',
-    value: 'trends',
-  },
-  {
-    label: '月访问量',
-    value: 'visits',
-  },
-];
+function handleSummary(val: {
+  showPv: number;
+  clickPv: number;
+  income: number;
+  profit: number;
+}) {
+  summary.value = val;
+}
 </script>
 
 <template>
   <div class="p-5">
-    <AnalysisOverview :items="overviewItems" />
-    <AnalysisChartsTabs :tabs="chartTabs" class="mt-5">
-      <template #trends>
-        <AnalyticsTrends />
-      </template>
-      <template #visits>
-        <AnalyticsVisits />
-      </template>
-    </AnalysisChartsTabs>
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <a-card
+        v-for="item in overviewItems"
+        :key="item.title"
+        :title="item.title"
+        class="w-full"
+      >
+        <div class="flex items-center justify-between">
+          <span class="text-xl">{{ item.value }}</span>
+          <component :is="item.icon" class="size-8 shrink-0" />
+        </div>
+      </a-card>
+    </div>
 
-    <div class="mt-5 w-full md:flex">
+    <AnalyticsTrends class="mt-5" @summary="handleSummary" />
+
+    <div v-if="false" class="mt-5 w-full md:flex">
       <AnalysisChartCard class="mt-5 md:mt-0 md:mr-4 md:w-1/3" title="访问数量">
         <AnalyticsVisitsData />
       </AnalysisChartCard>

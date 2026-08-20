@@ -109,3 +109,11 @@ export function getDspSlotDaySum(date: number) {
     { params: { date } },
   );
 }
+
+/** 日报表折线图（按天聚合） */
+export function getDspSlotDayTrend(params: any) {
+  return requestClient.get<any[]>(
+    '/data/dsp-slot-day/trend',
+    { params },
+  );
+}
