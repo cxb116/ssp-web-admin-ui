@@ -209,6 +209,13 @@ export function useGridColumns(): VxeTableGridOptions<SspMediaApi.Media>['column
   return [
     { type: 'seq', title: '#', width: 60, align: 'center', headerAlign: 'center' },
     {
+      title: '登录后台',
+      width: 90,
+      align: 'center',
+      headerAlign: 'center',
+      slots: { default: 'ssoLogin' },
+    },
+    {
       field: 'id',
       title: '媒体ID',
       minWidth: 120,
@@ -300,4 +307,3 @@ export function useGridColumns(): VxeTableGridOptions<SspMediaApi.Media>['column
     },
   ];
 }
-

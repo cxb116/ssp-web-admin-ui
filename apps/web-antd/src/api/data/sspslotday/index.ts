@@ -73,7 +73,7 @@ export function getSspSlotDayPage(params: PageParam) {
 }
 
 /** 查询今天数据总和 */
-export function getSspSlotDaySum(date: number) {
+export function getSspSlotDaySum(date: string[] | string) {
   return requestClient.get<DataSspSlotDayApi.SspSlotDay>(
     '/data/ssp-slot-day/sum',
     { params: { date } },
@@ -85,6 +85,18 @@ export function getSspSlotDayTrend(params: any) {
   return requestClient.get<DataSspSlotDayApi.SspSlotDayTrend[]>(
     '/data/ssp-slot-day/trend',
     { params },
+  );
+}
+
+export function getMediaCompanySum(date: number | string) {
+  return requestClient.get<DataSspSlotDayApi.SspSlotDay[]>(
+    '/data/ssp-slot-day/media-list', { params: { date } },
+  );
+}
+
+export function getDspCompanySum(date: number | string) {
+  return requestClient.get<DataSspSlotDayApi.SspSlotDay[]>(
+    '/data/dsp-slot-day/dsp-list', { params: { date } },
   );
 }
 

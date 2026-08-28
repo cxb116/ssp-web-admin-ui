@@ -6,6 +6,7 @@ import { requestClient } from '#/api/request';
 export namespace MediaApi {
     /** 媒体信息 */
   export interface Media {
+    ssoToken?: string;
             id: number; // ID
             account?: string; // 账号名
             password?: string; // 密码

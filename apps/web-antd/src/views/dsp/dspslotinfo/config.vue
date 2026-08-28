@@ -395,9 +395,9 @@ onMounted(async () => {
       if (copyFrom) {
         const sourceId = Number(copyFrom);
         const res = await getSlotInfo(sourceId);
-        // 复制时排除预算方APPSECRET、预算方APPID、预算广告位ID
-        const { dspAppSecret, dspAppId, dspSlotCode, id: _id, ...rest } = res;
-        void dspAppSecret; void dspAppId; void dspSlotCode; void _id;
+        // 复制时仅排除新记录主键和预算广告位ID，其余字段全部复制
+        const { dspSlotCode, id: _id, ...rest } = res;
+        void dspSlotCode; void _id;
         slotInfo.value = rest;
         if (rest?.companyId) {
           try {

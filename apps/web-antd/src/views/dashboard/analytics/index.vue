@@ -50,7 +50,10 @@ function handleSummary(val: {
 </script>
 
 <template>
-  <div class="p-5">
+  <div
+    class="box-border overflow-x-hidden overflow-y-scroll p-5"
+    style="height: calc(100vh - 64px); scrollbar-gutter: stable"
+  >
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
       <a-card
         v-for="item in overviewItems"

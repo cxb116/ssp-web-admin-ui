@@ -8,6 +8,7 @@ import { confirm, Page, useVbenModal } from '@vben/common-ui';
 import { downloadFileFromBlobPart, isEmpty } from '@vben/utils';
 
 import { message } from 'ant-design-vue';
+import { IconifyIcon } from '@vben/icons';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -39,6 +40,17 @@ function handleCreate() {
 /** 编辑媒体 */
 function handleEdit(row: SspMediaApi.Media) {
   formModalApi.setData(row).open();
+}
+
+function handleSsoLogin(row: SspMediaApi.Media) {
+  const token = (row as SspMediaApi.Media & { ssoToken?: string }).ssoToken;
+  if (!token) {
+    message.warning('该账号暂未获取到 SSO 票据');
+    return;
+  }
+  const childUrl =
+    import.meta.env.VITE_SSP_CHILD_URL || `${window.location.protocol}//${window.location.hostname}:81`;
+  window.open(`${childUrl}/#/auth/login?token=${encodeURIComponent(token)}`, 'ssp-child-admin');
 }
 
 /** 删除媒体 */
@@ -128,6 +140,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
   <Page auto-content-height>
     <FormModal @success="handleRefresh" />
     <Grid table-title="媒体列表">
+      <template #ssoLogin="{ row }">
+        <a-button type="link" size="small" title="登录子后台" @click="handleSsoLogin(row)">
+          <IconifyIcon icon="ant-design:login-outlined" />
+        </a-button>
+      </template>
       <template #toolbar-tools>
         <TableAction
           :actions="[

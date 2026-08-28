@@ -52,9 +52,13 @@ const [Modal, modalApi] = useVbenModal({
     }
     modalApi.lock();
     try {
-      await importInputExec(uploadFile.value, currentRow.value.id);
+      const result = await importInputExec(uploadFile.value, currentRow.value.id);
       await modalApi.close();
-      emit('success');
+      emit('success', {
+        result,
+        fileName: uploadFile.value.name,
+        inputExecId: currentRow.value.id,
+      });
       message.success($t('ui.actionMessage.operationSuccess'));
     } finally {
       modalApi.unlock();
@@ -90,7 +94,7 @@ async function handleDownload() {
       inputTime,
     });
     downloadFileFromBlobPart({
-      fileName: '预算数据导入模板.xls',
+      fileName: `通用收益-${currentRow.value.companyName}-${inputTime}.xls`,
       source: data,
     });
   } catch (error) {

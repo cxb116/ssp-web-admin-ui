@@ -40,6 +40,13 @@ export function updateInputExec(data: DataInputExecApi.InputExec) {
   return requestClient.put('/data/input-exec/update', data);
 }
 
+/** 导入结果保存提交收益 */
+export function updateInputIncome(data: DataInputExecApi.InputExec | DataInputExecApi.InputExec[]) {
+  return requestClient.put('/data/input-exec/updateIncome', data);
+}
+
+
+
 /** 删除DSP数据导入 */
 export function deleteInputExec(id: number) {
   return requestClient.delete(`/data/input-exec/delete?id=${id}`);

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { EchartsUIType } from '@vben/plugins/echarts';
 
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 import { EchartsUI, useEcharts } from '@vben/plugins/echarts';
 
@@ -9,10 +9,24 @@ import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
 
 import { useVbenForm } from '#/adapter/form';
-import { getSspSlotDayTrend } from '#/api/data/sspslotday';
+import { getDspSlotDayDspList } from '#/api/data/dspslotday';
+import { getMediaCompanySum, getSspSlotDayTrend } from '#/api/data/sspslotday';
 
 const chartRef = ref<EchartsUIType>();
 const { renderEcharts } = useEcharts(chartRef);
+const mediaChartRef = ref<EchartsUIType>();
+const dspChartRef = ref<EchartsUIType>();
+const { renderEcharts: renderMediaChart } = useEcharts(mediaChartRef);
+const { renderEcharts: renderDspChart } = useEcharts(dspChartRef);
+const mediaPieIndicator = ref('reqPv');
+const dspPieIndicator = ref('reqPv');
+
+const pieIndicators = [
+  { label: '请求PV', value: 'reqPv' }, { label: '返回PV', value: 'retPv' },
+  { label: '展现PV', value: 'showPv' }, { label: '点击PV', value: 'clickPv' },
+  { label: '丢弃数', value: 'discard' }, { label: '成本', value: 'spend' },
+  { label: '收入', value: 'income' },
+];
 
 /** 概览汇总（供首页卡片展示） */
 interface TrendSummary {
@@ -47,11 +61,7 @@ const indicatorOptions: IndicatorOption[] = [
 ];
 
 /** 默认选中指标 */
-const selectedIndicators = ref<string[]>([
-  'reqPv',
-  'showPv',
-  'clickPv',
-]);
+const selectedIndicators = ref<string[]>(['reqPv']);
 
 /** 时间检索（仅日报表，按天） */
 const [SearchForm, searchFormApi] = useVbenForm({
@@ -73,6 +83,7 @@ const [SearchForm, searchFormApi] = useVbenForm({
     },
   ],
   compact: true,
+  wrapperClass: 'grid-cols-2',
   handleReset: async () => {
     await searchFormApi.resetForm();
     await loadChart();
@@ -135,12 +146,11 @@ async function loadChart() {
     const option = indicatorOptions.find((i) => i.value === indicator);
     return {
       name: option?.label || indicator,
-      type: 'line',
+      type: 'line' as const,
       smooth: true,
       data: rows.map((r) => pickValue(r, indicator)),
     };
   });
-
   await renderEcharts({
     grid: { bottom: 40, left: 60, right: 20, top: 20 },
     legend: { bottom: 0, type: 'scroll' },
@@ -149,11 +159,37 @@ async function loadChart() {
     xAxis: { boundaryGap: false, data: xAxis, type: 'category' },
     yAxis: { minInterval: 1, type: 'value' },
   });
+  await loadPieCharts(params.date);
+}
+
+async function loadPieCharts(dateValue: any) {
+  const date = Array.isArray(dateValue) ? dateValue[dateValue.length - 1] : dateValue;
+  if (!date) return;
+  const dateNumber = Number(String(date).replaceAll('-', ''));
+  const [mediaRows, dspRows] = await Promise.all([
+    getMediaCompanySum(dateNumber),
+    getDspSlotDayDspList(dateNumber),
+  ]);
+  const mediaValueOf = (row: any) => pickValue(row, mediaPieIndicator.value);
+  const dspValueOf = (row: any) => pickValue(row, dspPieIndicator.value);
+  await renderMediaChart({
+    tooltip: { formatter: '{b}<br/>{c}（{d}%）', trigger: 'item' }, legend: { type: 'scroll', orient: 'vertical', left: 0 },
+    series: [{ type: 'pie', radius: ['35%', '70%'], center: ['60%', '50%'], label: { formatter: '{b}\n{d}%' }, data: mediaRows.map((r: any) => ({ name: r.mediaName || '未知媒体', value: mediaValueOf(r) })) }],
+  });
+  await renderDspChart({
+    tooltip: { formatter: '{b}<br/>{c}（{d}%）', trigger: 'item' }, legend: { type: 'scroll', orient: 'vertical', left: 0 },
+    series: [{ type: 'pie', radius: ['35%', '70%'], center: ['60%', '50%'], label: { formatter: '{b}\n{d}%' }, data: dspRows.map((r: any) => ({ name: r.companyName || '未知预算公司', value: dspValueOf(r) })) }],
+  });
 }
 
 function handleIndicatorChange() {
   loadChart();
 }
+
+watch([mediaPieIndicator, dspPieIndicator], async () => {
+  const values = await searchFormApi.getValues();
+  await loadPieCharts(values.date);
+});
 
 onMounted(() => {
   loadChart();
@@ -184,5 +220,24 @@ onMounted(() => {
 
     <!-- 折线图 -->
     <EchartsUI ref="chartRef" height="620px" />
+    <div class="grid grid-cols-2 gap-4">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-gray-600">饼图指标：</span>
+        <span class="text-gray-600">媒体公司：</span>
+        <a-select v-model:value="mediaPieIndicator" class="w-48" :options="pieIndicators" />
+      </div>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-gray-600">饼图指标：</span>
+        <span class="text-gray-600">预算公司：</span>
+        <a-select v-model:value="dspPieIndicator" class="w-48" :options="pieIndicators" />
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div><div class="mb-2 text-base font-medium">媒体公司分布</div><EchartsUI ref="mediaChartRef" height="360px" /></div>
+      <div>
+        <div class="mb-2 text-base font-medium">预算公司分布</div>
+        <EchartsUI ref="dspChartRef" height="360px" />
+      </div>
+    </div>
   </div>
 </template>

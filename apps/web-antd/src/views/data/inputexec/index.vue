@@ -3,12 +3,14 @@ import type { VxeTableGridOptions } from '#/adapter/vxe-table';
 import type { DataInputExecApi } from '#/api/data/inputexec';
 
 import { Page, useVbenModal } from '@vben/common-ui';
+import { useRouter } from 'vue-router';
 
 import { ACTION_ICON, TableAction, useVbenVxeGrid } from '#/adapter/vxe-table';
 import { getInputExecPage } from '#/api/data/inputexec';
 
 import { useGridColumns, useGridFormSchema } from './data';
 import ImportForm from './modules/import-form.vue';
+const router = useRouter();
 
 const [ImportModal, importModalApi] = useVbenModal({
   connectedComponent: ImportForm,
@@ -16,8 +18,16 @@ const [ImportModal, importModalApi] = useVbenModal({
 });
 
 /** 刷新表格 */
-function handleRefresh() {
+function handleRefresh(result?: unknown) {
   gridApi.query();
+  const payload = (result as any)?.result ?? result ?? [];
+  const fileName = (result as any)?.fileName || '导入结果';
+  const inputExecId = (result as any)?.inputExecId;
+  sessionStorage.setItem(
+    'input-exec-import-result',
+    JSON.stringify({ data: payload, fileName, inputExecId }),
+  );
+  router.push('/data/input-exec-result');
 }
 
 /** 导入数据 */
@@ -26,6 +36,7 @@ function handleImport(row: DataInputExecApi.InputExec) {
     .setData({
       id: row.id,
       companyId: row.companyId,
+      companyName: row.companyName,
       inputTime: row.inputTime,
     })
     .open();
@@ -68,7 +79,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
 <template>
   <Page auto-content-height>
     <ImportModal @success="handleRefresh" />
-    <Grid table-title="DSP数据导入列表">
+    <Grid table-title="预算数据导入列表">
       <template #actions="{ row }">
         <TableAction
           :actions="[

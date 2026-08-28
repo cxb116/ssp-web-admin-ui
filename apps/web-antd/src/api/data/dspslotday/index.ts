@@ -103,10 +103,10 @@ export function exportDspSlotDayDetail(params: any) {
 }
 
 /** 获取今日总和 */
-export function getDspSlotDaySum(date: number) {
+export function getDspSlotDaySum(params: Record<string, any>) {
   return requestClient.get<DataDspSlotDayApi.DspSlotDay>(
     '/data/dsp-slot-day/sum',
-    { params: { date } },
+    { params },
   );
 }
 
@@ -115,5 +115,13 @@ export function getDspSlotDayTrend(params: any) {
   return requestClient.get<any[]>(
     '/data/dsp-slot-day/trend',
     { params },
+  );
+}
+
+/** 饼状图 */
+export function getDspSlotDayDspList(date: number | string) {
+  return requestClient.get<DataDspSlotDayApi.DspSlotDay[]>(
+    '/data/dsp-slot-day/dsp-list',
+    { params: { date } },
   );
 }

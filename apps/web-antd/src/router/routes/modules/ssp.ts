@@ -2,6 +2,12 @@ import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/data/input-exec-result',
+    component: () => import('#/views/data/inputexec/result.vue'),
+    name: 'DataInputExecResult',
+    meta: { title: '导入结果', hideInMenu: true },
+  },
+  {
     path: '/ssp/slot-info/config/:id',
     component: () => import('#/views/ssp/sspSlotInfo/config.vue'),
     name: 'SspSlotInfoConfig',

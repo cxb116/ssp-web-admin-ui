@@ -7,12 +7,14 @@ import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page, useVbenModal } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 import { downloadFileFromBlobPart } from '@vben/utils';
 
 import { useVbenVxeGrid, VxeColumn, VxeTable } from '#/adapter/vxe-table';
 import {
   exportDspSlotDay,
   getDspSlotDayPage,
+  getDspSlotDaySum,
 } from '#/api/data/dspslotday';
 import { getSSPDspSlotDay } from '#/api/data/sspslotday';
 
@@ -46,14 +48,20 @@ const expandedRowIds = reactive(new Set<number>());
 /** 总和数据 */
 const allDataSum = ref<Record<string, number>>({});
 
-const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fillRate', 'displayRate', 'clickRate', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
+const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
+
+function formatCentValue(value: any): string {
+  return value != null ? (Number(value) / 100).toFixed(2) : '-';
+}
+
+function calculateRevenue(row: { income?: any; spend?: any }): number | null {
+  if (row.spend == null && row.income == null) return null;
+  return (Number(row.spend) || 0) + (Number(row.income) || 0);
+}
 
 /** 拉取全量数据计算总和 */
 async function fetchAllDataSum(formValues: Record<string, any>) {
-  const params: Record<string, any> = {
-    pageNo: 1,
-    pageSize: 1000,
-  };
+  const params: Record<string, any> = {};
   for (const key of Object.keys(formValues)) {
     if (key === 'sspSlotId' || key === 'dspSlotCode') continue;
     if (!formValues[key]) continue;
@@ -70,15 +78,13 @@ async function fetchAllDataSum(formValues: Record<string, any>) {
     params.dspSlotCodes = splitStr(formValues.dspSlotCode);
   }
   try {
-    const res = await getDspSlotDayPage(params);
-    const rows = (res as any).rows || (res as any).list || [];
-    const sum: Record<string, number> = {};
-    numericSumFields.forEach((f) => { sum[f] = 0; });
-    rows.forEach((row: any) => {
-      numericSumFields.forEach((f) => {
-        sum[f] += Number(row[f]) || 0;
-      });
-    });
+    const res = await getDspSlotDaySum(params);
+    const sum: Record<string, number> = { ...((res as any).data || res || {}) };
+    numericSumFields.forEach((f) => { sum[f] = Number(sum[f]) || 0; });
+    sum.fillRate = sum.reqPv > 0 ? Number(((sum.retPv / sum.reqPv) * 100).toFixed(2)) : 0;
+    sum.displayRate = sum.retPv > 0 ? Number(((sum.showPv / sum.retPv) * 100).toFixed(2)) : 0;
+    sum.clickRate = sum.showPv > 0 ? Number(((sum.clickPv / sum.showPv) * 100).toFixed(2)) : 0;
+    sum.revenue = (sum.spend ?? 0) + (sum.income ?? 0);
     allDataSum.value = sum;
   } catch {
     // ignore
@@ -102,6 +108,19 @@ function handleRefresh() {
 /** 获取已展开行的明细 */
 function getExpandedDetails(row: DataDspSlotDayApi.DspSlotDay) {
   return detailMap[row.id!] || [];
+}
+
+function isDetailDeleted(row: DataSspSlotDayApi.SspSlotDay) {
+  return Number((row as any).isDeleted) === 2;
+}
+
+function formatDetailDate(cellValue: any) {
+  if (!cellValue) return '';
+  const str = String(cellValue);
+  if (str.length === 8 && /^\d{8}$/.test(str)) {
+    return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
+  }
+  return str;
 }
 
 /** 展开列表行时加载子表数据 */
@@ -254,6 +273,15 @@ const [Grid, gridApi] = useVbenVxeGrid({
     footerConfig: {},
     footerMethod({ columns }: { columns: any[]; data: any[] }) {
       const sums: any[] = [];
+      const centValueFields = new Set([
+        'ecpm',
+        'ecprm',
+        'income',
+        'mediaEcpm',
+        'mediaEcprm',
+        'revenue',
+        'spend',
+      ]);
       columns.forEach((col, colIndex) => {
         const field = col.field;
         if (field === 'date') {
@@ -261,7 +289,9 @@ const [Grid, gridApi] = useVbenVxeGrid({
           return;
         }
         if (allDataSum.value[field] !== undefined) {
-          sums[colIndex] = allDataSum.value[field];
+          sums[colIndex] = centValueFields.has(field)
+            ? formatCentValue(allDataSum.value[field])
+            : allDataSum.value[field];
         } else {
           sums[colIndex] = '';
         }
@@ -314,6 +344,21 @@ const [Grid, gridApi] = useVbenVxeGrid({
       <template #osType-slot="{ row }">
         <span>{{ osTypeLabel(row.osType) }}</span>
       </template>
+      <template #mediaEcpm-slot="{ row }">
+        <span>{{ formatCentValue(row.mediaEcpm) }}</span>
+      </template>
+      <template #ecpm-slot="{ row }">
+        <span>{{ formatCentValue(row.ecpm) }}</span>
+      </template>
+      <template #mediaEcprm-slot="{ row }">
+        <span>{{ formatCentValue(row.mediaEcprm) }}</span>
+      </template>
+      <template #ecprm-slot="{ row }">
+        <span>{{ formatCentValue(row.ecprm) }}</span>
+      </template>
+      <template #revenue-slot="{ row }">
+        <span>{{ formatCentValue(calculateRevenue(row)) }}</span>
+      </template>
       <template #spend-slot="{ row }">
         <span>{{ row.spend != null ? (row.spend / 100).toFixed(2) : '-' }}</span>
       </template>
@@ -328,12 +373,19 @@ const [Grid, gridApi] = useVbenVxeGrid({
           size="small"
           align="center"
         >
-          <VxeColumn title="日期" field="date" width="120" :formatter="({ cellValue }: { cellValue: any }) => {
-            if (!cellValue) return '';
-            const str = String(cellValue);
-            if (str.length === 8 && /^\d{8}$/.test(str)) return `${str.slice(0, 4)}-${str.slice(4, 6)}-${str.slice(6, 8)}`;
-            return str;
-          }" />
+          <VxeColumn title="日期" field="date" width="120">
+            <template #default="{ row: detailRow }">
+              <span class="relative inline-flex items-center gap-1">
+                <IconifyIcon
+                  v-if="isDetailDeleted(detailRow)"
+                  icon="lucide:trash-2"
+                  class="text-red-500"
+                  title="已删除"
+                />
+                {{ formatDetailDate(detailRow.date) }}
+              </span>
+            </template>
+          </VxeColumn>
           <VxeColumn title="媒体简称" field="mediaName" width="150" />
           <VxeColumn title="应用名称" field="appName" width="120" />
           <VxeColumn title="媒体广告位名称" field="sspName" width="150" />
@@ -352,10 +404,11 @@ const [Grid, gridApi] = useVbenVxeGrid({
           <VxeColumn title="完成量" field="completePv" width="100" />
           <VxeColumn title="安装量" field="installPv" width="100" />
           <VxeColumn title="激活量" field="activatePv" width="100" />
-          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" />
-          <VxeColumn title="ecpm" field="ecpm" width="100" />
-          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" />
-          <VxeColumn title="ecprm" field="ecprm" width="100" />
+          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
+          <VxeColumn title="ecpm" field="ecpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
+          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
+          <VxeColumn title="ecprm" field="ecprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
+          <VxeColumn title="收益(元)" width="100" :formatter="({ row }: { row: any }) => formatCentValue(calculateRevenue(row))" />
           <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
           <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
         </VxeTable>

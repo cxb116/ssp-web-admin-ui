@@ -8,6 +8,13 @@ import { getRangePickerDefaultProps } from '#/utils';
 export function useFormSchema(): VbenFormSchema[] {
   return [
     {
+      type: 'seq',
+      title: '#',
+      width: 60,
+      align: 'center',
+      headerAlign: 'center',
+    },
+    {
       fieldName: 'id',
       component: 'Input',
       dependencies: {
