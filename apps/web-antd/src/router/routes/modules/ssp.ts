@@ -18,6 +18,12 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/ssp/slot-info/websocket-log',
+    component: () => import('#/views/ssp/sspSlotInfo/webSocketLog.vue'),
+    name: 'SspSlotInfoWebSocketLog',
+    meta: { title: '日志分析', hideInMenu: true },
+  },
+  {
     path: '/dsp/dspslotinfo/config/:id?',
     component: () => import('#/views/dsp/dspslotinfo/config.vue'),
     name: 'DspSlotInfoConfig',

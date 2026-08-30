@@ -238,13 +238,18 @@ async function handleCaptureLog(budget: BudgetInfo) {
   const logTime = Math.floor(Date.now() / 1000) + 180;
   budget.logTime = logTime;
 
+  const groupIndex = trafficGroups.value.findIndex((group) =>
+    group.budgets.some((item) => item === budget),
+  );
+  const group = groupIndex >= 0 ? trafficGroups.value[groupIndex] : undefined;
+
   try {
     await updateLaunch({
       id: budget.launchId,
       sspSlotId: slotId.value,
       dspSlotId: budget.dspSlotId,
-      trafficWeight: 0,
-      trafficGroup: 0,
+      trafficWeight: group?.trafficWeight ?? 0,
+      trafficGroup: groupIndex >= 0 ? groupIndex + 1 : 0,
       floorPrice: budget.price ? Math.round(budget.price * 100) : 0,
       dspPayRatio: budget.dspPayRatio,
       launchTime: budget.launchTime,
@@ -256,6 +261,17 @@ async function handleCaptureLog(budget: BudgetInfo) {
       pkgTrans: budget.pkgTrans,
     } as any);
     message.success(`日志捕获时间已设置为: ${logTime} (${new Date(logTime * 1000).toLocaleString()})`);
+    const logRoute = router.resolve({
+      name: 'SspSlotInfoWebSocketLog',
+      query: {
+        budgetName: budget.name,
+        dspSlotId: budget.dspSlotId,
+        dspSlotCode: budget.dspSlotCode || '',
+        dspSlotName: budget.name,
+        sspSlotId: slotId.value,
+      },
+    });
+    window.open(logRoute.href, '_blank', 'noopener,noreferrer');
   } catch (error: any) {
     console.error('捕获日志失败:', error);
     message.error('捕获日志失败: ' + (error?.message || '未知错误'));
