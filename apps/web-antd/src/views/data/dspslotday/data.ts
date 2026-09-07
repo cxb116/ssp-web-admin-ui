@@ -379,6 +379,7 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       title: '日期',
       minWidth: 110,
       align: 'left',
+      sortable: true,
       formatter: ({ cellValue }) => {
         if (!cellValue) return '';
         const str = String(cellValue);
@@ -574,6 +575,9 @@ export function useGridColumns(): VxeTableGridOptions<DataDspSlotDayApi.DspSlotD
       field: 'revenue',
       title: '收益(元)',
       minWidth: 120,
+      sortable: true,
+      sortBy: ({ row }: any) =>
+        (Number(row?.spend) || 0) + (Number(row?.income) || 0),
       slots: { default: 'revenue-slot' },
     },
     {

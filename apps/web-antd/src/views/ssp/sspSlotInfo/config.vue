@@ -261,17 +261,6 @@ async function handleCaptureLog(budget: BudgetInfo) {
       pkgTrans: budget.pkgTrans,
     } as any);
     message.success(`日志捕获时间已设置为: ${logTime} (${new Date(logTime * 1000).toLocaleString()})`);
-    const logRoute = router.resolve({
-      name: 'SspSlotInfoWebSocketLog',
-      query: {
-        budgetName: budget.name,
-        dspSlotId: budget.dspSlotId,
-        dspSlotCode: budget.dspSlotCode || '',
-        dspSlotName: budget.name,
-        sspSlotId: slotId.value,
-      },
-    });
-    window.open(logRoute.href, '_blank', 'noopener,noreferrer');
   } catch (error: any) {
     console.error('捕获日志失败:', error);
     message.error('捕获日志失败: ' + (error?.message || '未知错误'));

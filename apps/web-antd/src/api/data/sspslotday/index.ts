@@ -73,10 +73,12 @@ export function getSspSlotDayPage(params: PageParam) {
 }
 
 /** 查询今天数据总和 */
-export function getSspSlotDaySum(date: string[] | string) {
+export function getSspSlotDaySum(params: Record<string, any> | string[] | string) {
+  const query =
+    Array.isArray(params) || typeof params === 'string' ? { date: params } : params;
   return requestClient.get<DataSspSlotDayApi.SspSlotDay>(
     '/data/ssp-slot-day/sum',
-    { params: { date } },
+    { params: query },
   );
 }
 

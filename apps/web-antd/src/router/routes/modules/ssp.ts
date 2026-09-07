@@ -1,11 +1,11 @@
-import type { RouteRecordRaw } from 'vue-router';
+﻿import type { RouteRecordRaw } from 'vue-router';
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/data/input-exec-result',
     component: () => import('#/views/data/inputexec/result.vue'),
     name: 'DataInputExecResult',
-    meta: { title: '导入结果', hideInMenu: true },
+    meta: { title: '预算数据导入', hideInMenu: true },
   },
   {
     path: '/ssp/slot-info/config/:id',
@@ -21,7 +21,7 @@ const routes: RouteRecordRaw[] = [
     path: '/ssp/slot-info/websocket-log',
     component: () => import('#/views/ssp/sspSlotInfo/webSocketLog.vue'),
     name: 'SspSlotInfoWebSocketLog',
-    meta: { title: '日志分析', hideInMenu: true },
+    meta: { title: 'websocket日志', hideInMenu: true },
   },
   {
     path: '/dsp/dspslotinfo/config/:id?',
@@ -41,6 +41,7 @@ const routes: RouteRecordRaw[] = [
       title: '媒体广告位日报表',
       icon: 'ant-design:calendar-outlined',
       hideInMenu: true,
+      keepAlive: true,
     },
   },
   {
@@ -48,9 +49,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('#/views/data/sspslothour/index.vue'),
     name: 'DataSspSlotHour',
     meta: {
-      title: '媒体广告位小时报表',
+      title: '媒体广告位小时表',
       icon: 'ant-design:field-time-outlined',
       hideInMenu: true,
+      keepAlive: true,
     },
   },
   {
@@ -61,6 +63,8 @@ const routes: RouteRecordRaw[] = [
       title: '预算广告位日报表',
       icon: 'ant-design:calendar-outlined',
       hideInMenu: true,
+      keepAlive: true,
+    
     },
   },
   {
@@ -68,9 +72,10 @@ const routes: RouteRecordRaw[] = [
     component: () => import('#/views/data/dspslothour/index.vue'),
     name: 'DataDspSlotHour',
     meta: {
-      title: '预算广告位小时报表',
+      title: '预算广告位小时表',
       icon: 'ant-design:field-time-outlined',
       hideInMenu: true,
+      keepAlive: true,
     },
   },
   {
@@ -78,11 +83,13 @@ const routes: RouteRecordRaw[] = [
     component: () => import('#/views/data/detailshour/index.vue'),
     name: 'DataDetailsHour',
     meta: {
-      title: '明细小时报表',
+      title: '详细小时报表',
       icon: 'ant-design:field-time-outlined',
       hideInMenu: true,
+      keepAlive: true,
     },
   },
 ];
 
 export default routes;
+

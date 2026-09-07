@@ -176,8 +176,8 @@ const allDataSum = ref<Record<string, number>>({});
 
 const numericSumFields = ['reqPv', 'discard', 'retPv', 'showPv', 'clickPv', 'fillRate', 'displayRate', 'clickRate', 'discountClickPv', 'discountShowPv', 'dplsuccPv', 'completePv', 'installPv', 'activatePv', 'mediaEcpm', 'ecpm', 'mediaEcprm', 'ecprm', 'spend', 'income'];
 
-function formatCentValue(value: any): string {
-  return value != null ? (Number(value) / 100).toFixed(2) : '-';
+function formatHundredThousandValue(value: any): string {
+  return value != null ? (Number(value) / 100000).toFixed(2) : '-';
 }
 
 function calculateRevenue(row: { income?: any; spend?: any }): number | null {
@@ -329,7 +329,7 @@ const [Grid, gridApi] = useVbenVxeGrid({
         }
         if (allDataSum.value[field] !== undefined) {
           sums[colIndex] = centValueFields.has(field)
-            ? formatCentValue(allDataSum.value[field])
+            ? formatHundredThousandValue(allDataSum.value[field])
             : allDataSum.value[field];
         } else {
           sums[colIndex] = '';
@@ -378,25 +378,25 @@ const [Grid, gridApi] = useVbenVxeGrid({
         </span>
       </template>
       <template #mediaEcpm-slot="{ row }">
-        <span>{{ formatCentValue(row.mediaEcpm) }}</span>
+        <span>{{ formatHundredThousandValue(row.mediaEcpm) }}</span>
       </template>
       <template #ecpm-slot="{ row }">
-        <span>{{ formatCentValue(row.ecpm) }}</span>
+        <span>{{ formatHundredThousandValue(row.ecpm) }}</span>
       </template>
       <template #mediaEcprm-slot="{ row }">
-        <span>{{ formatCentValue(row.mediaEcprm) }}</span>
+        <span>{{ formatHundredThousandValue(row.mediaEcprm) }}</span>
       </template>
       <template #ecprm-slot="{ row }">
-        <span>{{ formatCentValue(row.ecprm) }}</span>
+        <span>{{ formatHundredThousandValue(row.ecprm) }}</span>
       </template>
       <template #revenue-slot="{ row }">
-        <span>{{ formatCentValue(calculateRevenue(row)) }}</span>
+        <span>{{ formatHundredThousandValue(calculateRevenue(row)) }}</span>
       </template>
       <template #spend-slot="{ row }">
-        <span>{{ row.spend != null ? (row.spend / 100).toFixed(2) : '-' }}</span>
+        <span>{{ formatHundredThousandValue(row.spend) }}</span>
       </template>
       <template #income-slot="{ row }">
-        <span>{{ row.income != null ? (row.income / 100).toFixed(2) : '-' }}</span>
+        <span>{{ formatHundredThousandValue(row.income) }}</span>
       </template>
       <template #mediaName-slot="{ row }">
         <span>{{ row.mediaName || '-' }}</span>
@@ -448,13 +448,13 @@ const [Grid, gridApi] = useVbenVxeGrid({
           <VxeColumn title="完成量" field="completePv" width="100" />
           <VxeColumn title="安装量" field="installPv" width="100" />
           <VxeColumn title="激活量" field="activatePv" width="100" />
-          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
-          <VxeColumn title="ecpm" field="ecpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
-          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
-          <VxeColumn title="ecprm" field="ecprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatCentValue(cellValue)" />
-          <VxeColumn title="收益(元)" width="100" :formatter="({ row }: { row: any }) => formatCentValue(calculateRevenue(row))" />
-          <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
-          <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => cellValue != null ? (cellValue / 100).toFixed(2) : '-'" />
+          <VxeColumn title="媒体ecpm" field="mediaEcpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
+          <VxeColumn title="ecpm" field="ecpm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
+          <VxeColumn title="媒体ecprm" field="mediaEcprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
+          <VxeColumn title="ecprm" field="ecprm" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
+          <VxeColumn title="收益(元)" width="100" :formatter="({ row }: { row: any }) => formatHundredThousandValue(calculateRevenue(row))" />
+          <VxeColumn title="成本(元)" field="spend" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
+          <VxeColumn title="收入(元)" field="income" width="100" :formatter="({ cellValue }: { cellValue: any }) => formatHundredThousandValue(cellValue)" />
         </VxeTable>
       </template>
       <template #toolbar-tools>
